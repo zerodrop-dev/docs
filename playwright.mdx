@@ -1,0 +1,165 @@
+# Playwright
+
+ZeroDrop integrates with Playwright for end-to-end email testing in CI pipelines. No Docker, no SMTP server, no mocking.
+
+## Installation
+
+```bash
+npm install zerodrop-client
+npm install --save-dev @playwright/test
+```
+
+## Basic setup
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { ZeroDrop } from 'zerodrop-client';
+
+const mail = new ZeroDrop();
+
+test('email verification flow', async ({ page }) => {
+  // Generate a unique inbox for this test
+  const inbox = mail.generateInbox();
+
+  // Use the inbox in your signup form
+  await page.goto('/signup');
+  await page.fill('[data-testid="email"]', inbox);
+  await page.click('[data-testid="submit"]');
+
+  // Wait for the verification email
+  const email = await mail.waitForLatest(inbox, { timeout: 30000 });
+
+  // OTP and magic link are auto-extracted
+  console.log(email.otp);       // "123456"
+  console.log(email.magicLink); // "https://yourapp.com/verify?token=..."
+
+  // Click the verification link
+  await page.goto(email.magicLink!);
+  await expect(page).toHaveURL('/dashboard');
+});
+```
+
+## OTP verification
+
+ZeroDrop extracts OTPs automatically at the edge — no regex needed in your tests.
+
+```typescript
+test('OTP login flow', async ({ page }) => {
+  const inbox = mail.generateInbox();
+
+  await page.goto('/login');
+  await page.fill('[data-testid="email"]', inbox);
+  await page.click('[data-testid="submit"]');
+
+  // Wait for OTP email
+  const email = await mail.waitForLatest(inbox, { timeout: 30000 });
+  expect(email.otp).not.toBeNull();
+
+  // Enter OTP directly — no body parsing needed
+  await page.fill('[data-testid="otp"]', email.otp!);
+  await page.click('[data-testid="verify"]');
+
+  await expect(page).toHaveURL('/dashboard');
+});
+```
+
+## Password reset flow
+
+```typescript
+test('password reset flow', async ({ page }) => {
+  const inbox = mail.generateInbox();
+
+  // Request password reset
+  await page.goto('/forgot-password');
+  await page.fill('[data-testid="email"]', inbox);
+  await page.click('[data-testid="submit"]');
+
+  // Wait for reset email
+  const email = await mail.waitForLatest(inbox, { timeout: 30000 });
+
+  // Navigate to reset link
+  await page.goto(email.magicLink!);
+  await page.fill('[data-testid="password"]', 'NewPassword123!');
+  await page.click('[data-testid="submit"]');
+
+  await expect(page).toHaveURL('/login');
+});
+```
+
+## Parallel tests
+
+Every inbox is isolated — parallel tests never collide.
+
+```typescript
+test.describe.parallel('Email flows', () => {
+  test('user A can verify email', async ({ page }) => {
+    const inbox = mail.generateInbox(); // unique per test
+    // ...
+  });
+
+  test('user B can verify email', async ({ page }) => {
+    const inbox = mail.generateInbox(); // different inbox
+    // ...
+  });
+});
+```
+
+## Multiple emails in one test
+
+```typescript
+test('signup then password reset', async ({ page }) => {
+  const inbox = mail.generateInbox();
+  let lastEmailId: string;
+
+  // First email — verification
+  const verifyEmail = await mail.waitForLatest(inbox, { timeout: 30000 });
+  lastEmailId = verifyEmail.id;
+  await page.goto(verifyEmail.magicLink!);
+
+  // Trigger password reset
+  await page.goto('/forgot-password');
+  await page.fill('[data-testid="email"]', inbox);
+  await page.click('[data-testid="submit"]');
+
+  // Poll until a NEW email arrives
+  let resetEmail = null;
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline) {
+    const latest = await mail.fetchLatest(inbox);
+    if (latest && latest.id !== lastEmailId) {
+      resetEmail = latest;
+      break;
+    }
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
+  expect(resetEmail).not.toBeNull();
+  await page.goto(resetEmail!.magicLink!);
+});
+```
+
+## Timeout options
+
+```typescript
+// Default: 10 seconds
+const email = await mail.waitForLatest(inbox);
+
+// Custom timeout
+const email = await mail.waitForLatest(inbox, { timeout: 30000 });
+
+// Force polling mode (disable SSE)
+const email = await mail.waitForLatest(inbox, { sse: false });
+```
+
+## playwright.config.ts
+
+```typescript
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  timeout: 60000, // allow time for email delivery
+  use: {
+    baseURL: 'http://localhost:3000',
+  },
+});
+```
