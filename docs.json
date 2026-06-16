@@ -54,11 +54,25 @@
           },
           {
             "group": "CI/CD",
-            "pages": ["github-actions"]
+            "pages": [
+              {
+                "page": "github-actions",
+                "title": "GitHub Actions"
+              }
+            ]
           },
           {
             "group": "Reference",
-            "pages": ["sdk-reference", "self-hosting"]
+            "pages": [
+              {
+                "page": "sdk-reference",
+                "title": "SDK Reference"
+              },
+              {
+                "page": "self-hosting",
+                "title": "Self-Hosting"
+              }
+            ]
           }
         ]
       }
