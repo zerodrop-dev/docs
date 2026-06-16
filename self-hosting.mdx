@@ -1,0 +1,54 @@
+# Self-Hosting
+
+ZeroDrop's email worker is fully open source. Teams with strict compliance requirements can deploy their own instance.
+
+## What you need
+
+- A Cloudflare account with Workers enabled
+- A domain added to Cloudflare (for Email Routing)
+- An Upstash Redis database
+- Node.js 18+ and Wrangler CLI
+
+## Setup
+
+```bash
+git clone https://github.com/zerodrop-dev/zerodrop-worker.git
+cd zerodrop-worker
+npm install
+```
+
+Set your secrets:
+
+```bash
+npx wrangler secret put UPSTASH_REDIS_REST_URL
+npx wrangler secret put UPSTASH_REDIS_REST_TOKEN
+```
+
+Deploy:
+
+```bash
+npx wrangler deploy
+```
+
+Configure Cloudflare Email Routing to send all emails at `*@yourdomain.com` to your deployed worker.
+
+## Point the SDK at your instance
+
+```typescript
+const mail = new ZeroDrop(undefined, {
+  baseUrl: 'https://your-dashboard.yourdomain.com'
+});
+```
+
+## Full guide
+
+See [SELF_HOSTING.md](https://github.com/zerodrop-dev/zerodrop-worker/blob/master/SELF_HOSTING.md) in the worker repo for the complete setup guide including wrangler.toml configuration, disabling the AI spam filter, and cost estimates.
+
+## Cost estimate
+
+- **Cloudflare Workers** — free tier: 100,000 requests/day
+- **Cloudflare Email Routing** — free
+- **Cloudflare Workers AI** — free tier: 10,000 neurons/day
+- **Upstash Redis** — free tier: 10,000 commands/day
+
+For most CI pipelines, self-hosting runs entirely within free tiers.
