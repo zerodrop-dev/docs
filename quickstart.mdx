@@ -1,47 +1,66 @@
----
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
----
+# Quick Start
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
+ZeroDrop gives you a disposable email inbox in one line of code. No signup, no Docker, no SMTP config.
 
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+## Install the SDK
 
-## Prerequisites
+```bash
+npm install zerodrop-client
+```
 
-Before you begin, you must have:
+## Generate an inbox
 
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
+```typescript
+import { ZeroDrop } from 'zerodrop-client';
 
-## Get started
+const mail = new ZeroDrop();
+const inbox = mail.generateInbox();
 
-<Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+console.log(inbox); // swift-x7k2m@zerodrop-sandbox.online
+```
 
-    ```bash
-    npm install your-package
-    ```
-  </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
+The inbox is ready instantly — no network request needed to generate it.
 
-    ```bash
-    your-cli init
-    ```
-  </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+## Wait for an email
 
-    ```bash
-    your-cli start
-    ```
-  </Step>
-</Steps>
+```typescript
+const email = await mail.waitForLatest(inbox, { timeout: 30000 });
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+console.log(email.subject);   // "Verify your email"
+console.log(email.otp);       // "123456" — auto-extracted
+console.log(email.magicLink); // "https://..." — auto-extracted
+```
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+`waitForLatest` uses SSE for sub-second delivery. Falls back to polling automatically if SSE is unavailable.
+
+## Full example
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { ZeroDrop } from 'zerodrop-client';
+
+const mail = new ZeroDrop();
+
+test('user can sign up and verify email', async ({ page }) => {
+  const inbox = mail.generateInbox();
+
+  await page.goto('/signup');
+  await page.fill('[data-testid="email"]', inbox);
+  await page.click('[data-testid="submit"]');
+
+  const email = await mail.waitForLatest(inbox, { timeout: 30000 });
+
+  // OTP already extracted — no regex needed
+  await page.fill('[data-testid="otp"]', email.otp!);
+  await page.click('[data-testid="verify"]');
+
+  await expect(page).toHaveURL('/dashboard');
+});
+```
+
+## Next steps
+
+- [Playwright guide](/docs/playwright) — full email verification test examples
+- [GitHub Actions](/docs/github-actions) — use ZeroDrop in CI pipelines
+- [SDK reference](/docs/sdk) — full API documentation
+- [Self-hosting](/docs/self-hosting) — deploy your own instance
