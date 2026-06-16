@@ -1,0 +1,172 @@
+# SDK Reference
+
+Full API reference for `zerodrop-client`.
+
+## Installation
+
+```bash
+npm install zerodrop-client
+```
+
+## ZeroDrop class
+
+```typescript
+import { ZeroDrop } from 'zerodrop-client';
+
+const mail = new ZeroDrop(apiKey?, options?);
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `apiKey` | `string` (optional) | API key for Workspaces tier |
+| `options.baseUrl` | `string` (optional) | Custom base URL for self-hosted instances |
+
+Without an API key, ZeroDrop runs in free sandbox mode with a shared domain and 30-minute TTL.
+
+---
+
+## generateInbox()
+
+```typescript
+mail.generateInbox(): string
+```
+
+Generates a unique inbox address instantly. No network request.
+
+```typescript
+const inbox = mail.generateInbox();
+// "swift-x7k2m@zerodrop-sandbox.online"
+```
+
+---
+
+## waitForLatest()
+
+```typescript
+mail.waitForLatest(inbox: string, options?): Promise<ZeroDropEmail>
+```
+
+Waits for an email to arrive. Uses SSE for sub-second delivery, falls back to polling automatically.
+
+Throws `ZeroDropTimeoutError` if no email arrives within the timeout.
+
+### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `timeout` | `number` | `10000` | Milliseconds to wait |
+| `pollInterval` | `number` | `2000` | Milliseconds between polls (fallback mode) |
+| `sse` | `boolean` | `true` | Use SSE for delivery |
+
+```typescript
+// Default — SSE, 10s timeout
+const email = await mail.waitForLatest(inbox);
+
+// Custom timeout
+const email = await mail.waitForLatest(inbox, { timeout: 30000 });
+
+// Force polling
+const email = await mail.waitForLatest(inbox, { sse: false });
+```
+
+---
+
+## fetchLatest()
+
+```typescript
+mail.fetchLatest(inbox: string): Promise<ZeroDropEmail | null>
+```
+
+Fetches the latest email without waiting. Returns `null` if the inbox is empty.
+
+```typescript
+const email = await mail.fetchLatest(inbox);
+if (email) {
+  console.log(email.subject);
+}
+```
+
+---
+
+## ZeroDropEmail type
+
+```typescript
+interface ZeroDropEmail {
+  id: string;           // Unique message ID
+  from: string;         // Sender address
+  to: string;           // Recipient address
+  subject: string;      // Email subject
+  body: string;         // Parsed plain-text body
+  rawBody: string;      // Full raw MIME message
+  receivedAt: Date;     // UTC timestamp
+  otp: string | null;   // Auto-extracted OTP code (4-8 digits)
+  magicLink: string | null; // Auto-extracted verification/reset link
+}
+```
+
+### otp
+
+4-8 digit numeric code extracted from the email body. Detected near labels like `code`, `otp`, `pin`, `verification`. `null` if not detected.
+
+```typescript
+const email = await mail.waitForLatest(inbox);
+console.log(email.otp); // "123456" or null
+```
+
+### magicLink
+
+Verification or reset URL extracted from the email body. Detected for URLs containing `verify`, `confirm`, `reset`, `token`, `activate`, or `auth`. `null` if not detected.
+
+```typescript
+console.log(email.magicLink); // "https://app.com/verify?token=abc" or null
+```
+
+---
+
+## Error types
+
+### ZeroDropTimeoutError
+
+Thrown when no email arrives within the timeout.
+
+```typescript
+import { ZeroDropTimeoutError } from 'zerodrop-client';
+
+try {
+  const email = await mail.waitForLatest(inbox, { timeout: 10000 });
+} catch (err) {
+  if (err instanceof ZeroDropTimeoutError) {
+    console.log('No email received in time');
+  }
+}
+```
+
+### ZeroDropNetworkError
+
+Thrown when the API is unreachable. Includes a link to the status page.
+
+```typescript
+import { ZeroDropNetworkError } from 'zerodrop-client';
+
+try {
+  const email = await mail.fetchLatest(inbox);
+} catch (err) {
+  if (err instanceof ZeroDropNetworkError) {
+    console.log('Network error — check https://zerodrop.instatus.com');
+  }
+}
+```
+
+### ZeroDropAuthError
+
+Thrown when an invalid API key is provided.
+
+---
+
+## Zero telemetry
+
+The SDK does not send analytics, usage metrics, or environment data to any server. The only network requests made are explicit inbox polls to `zerodrop.dev/api/inbox/{name}`.
+
+Your CI pipeline is your business.
