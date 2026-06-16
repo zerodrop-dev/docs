@@ -1,20 +1,57 @@
 ---
-title: "Introduction"
-description: "Welcome to your project"
+title: ZeroDrop Documentation
+description: Disposable email inboxes for CI pipelines. No Docker. No SMTP. No signup.
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+## What is ZeroDrop?
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+ZeroDrop gives your Playwright and Cypress tests a real email inbox — instantly. Send a verification email, catch it at the edge, extract the OTP automatically, and complete the flow.
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+No Docker container. No SMTP server. No mocking.
+
+## Quick install
+
+```bash
+npm install zerodrop-client
+```
+
+```typescript
+import { ZeroDrop } from 'zerodrop-client';
+
+const mail = new ZeroDrop();
+const inbox = mail.generateInbox();
+
+// Wait for email — OTP auto-extracted, no regex needed
+const email = await mail.waitForLatest(inbox, { timeout: 30000 });
+console.log(email.otp);       // "123456"
+console.log(email.magicLink); // "https://..."
+```
+
+## Get started
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Install the SDK and write your first email test in under 5 minutes.
+  </Card>
+  <Card title="Playwright" icon="play" href="/playwright">
+    Full guide for email verification, OTP, and password reset flows in Playwright.
+  </Card>
+  <Card title="GitHub Actions" icon="github" href="/github-actions">
+    Add a disposable inbox to your CI pipeline with one Action.
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/sdk-reference">
+    Full API documentation for zerodrop-client.
+  </Card>
+</CardGroup>
+
+## How it works
+
+1. **Generate an inbox** — local, instant, no network request
+2. **Send an email** — your app sends a real verification email
+3. **Catch it at the edge** — Cloudflare Worker catches it, Llama 3.1 filters spam
+4. **Auto-extract OTP** — stored alongside the email, ready to use
+5. **Sub-second delivery** — SDK uses SSE, falls back to polling
+
+## Zero telemetry
+
+ZeroDrop does not track your test suites, build environments, project names, or CI runner metadata. Your CI pipeline is your business.
