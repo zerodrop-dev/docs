@@ -1,0 +1,131 @@
+# GitHub Actions
+
+ZeroDrop has a native GitHub Action that generates a disposable inbox before your tests run and injects it as an environment variable.
+
+## Basic usage
+
+```yaml
+name: E2E Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate test inbox
+        id: inbox
+        uses: zerodrop-dev/create-inbox@8706a59 # v1.0.0
+
+      - name: Run Playwright tests
+        run: npx playwright test
+        env:
+          TEST_INBOX: ${{ steps.inbox.outputs.inbox }}
+```
+
+## Accessing the inbox in tests
+
+```typescript
+import { ZeroDrop } from 'zerodrop-client';
+
+const mail = new ZeroDrop();
+
+// Uses CI inbox if available, generates one locally otherwise
+const inbox = process.env.TEST_INBOX ?? mail.generateInbox();
+```
+
+## SHA pinning (recommended)
+
+Pin to a specific commit SHA for supply chain security:
+
+```yaml
+# Recommended — pin to SHA
+uses: zerodrop-dev/create-inbox@8706a59 # v1.0.0
+
+# Not recommended — floating tag
+uses: zerodrop-dev/create-inbox@v1
+```
+
+## Parallel matrix builds
+
+Each matrix job gets its own isolated inbox automatically:
+
+```yaml
+jobs:
+  test:
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - name: Generate test inbox
+        id: inbox
+        uses: zerodrop-dev/create-inbox@8706a59
+
+      - name: Run tests
+        run: npx playwright test --project=${{ matrix.browser }}
+        env:
+          TEST_INBOX: ${{ steps.inbox.outputs.inbox }}
+```
+
+Each browser gets a different inbox — no collisions between parallel jobs.
+
+## Full workflow example
+
+```yaml
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate test inbox
+        id: inbox
+        uses: zerodrop-dev/create-inbox@8706a59 # v1.0.0
+
+      - name: Run E2E tests
+        run: npx playwright test
+        env:
+          TEST_INBOX: ${{ steps.inbox.outputs.inbox }}
+          BASE_URL: ${{ secrets.STAGING_URL }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+```
+
+## Action outputs
+
+| Output | Description | Example |
+|--------|-------------|---------|
+| `inbox` | Full email address | `swift-x7k2m@zerodrop-sandbox.online` |
+| `name` | Inbox name only | `swift-x7k2m` |
+
+## Security
+
+The Action generates inbox names locally on the runner — no network request is made during generation. The inbox address is a random string; it does not contact ZeroDrop servers until your tests begin polling.
+
+See [SECURITY.md](https://github.com/zerodrop-dev/create-inbox/blob/main/SECURITY.md) for full supply chain documentation.
