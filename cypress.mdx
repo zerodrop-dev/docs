@@ -1,0 +1,111 @@
+# Cypress
+
+ZeroDrop works with Cypress for end-to-end email testing. No Docker, no SMTP server, no mocking.
+
+## Installation
+
+```bash
+npm install zerodrop-client
+npm install --save-dev cypress
+```
+
+## Basic setup
+
+```javascript
+// cypress/e2e/auth.cy.js
+import { ZeroDrop } from 'zerodrop-client';
+
+const mail = new ZeroDrop();
+
+describe('Email verification', () => {
+  it('user can sign up and verify email', () => {
+    const inbox = mail.generateInbox();
+
+    cy.visit('/signup');
+    cy.get('[data-testid="email"]').type(inbox);
+    cy.get('[data-testid="submit"]').click();
+
+    // Wait for email
+    cy.wrap(mail.waitForLatest(inbox, { timeout: 30000 }))
+      .then((email) => {
+        expect(email.otp).to.not.be.null;
+
+        // Enter OTP
+        cy.get('[data-testid="otp"]').type(email.otp);
+        cy.get('[data-testid="verify"]').click();
+        cy.url().should('include', '/dashboard');
+      });
+  });
+});
+```
+
+## OTP verification
+
+```javascript
+it('OTP login', () => {
+  const inbox = mail.generateInbox();
+
+  cy.visit('/login');
+  cy.get('[data-testid="email"]').type(inbox);
+  cy.get('[data-testid="submit"]').click();
+
+  cy.wrap(mail.waitForLatest(inbox, { timeout: 30000 }))
+    .then((email) => {
+      // OTP auto-extracted — no regex needed
+      cy.get('[data-testid="otp"]').type(email.otp);
+      cy.get('[data-testid="verify"]').click();
+    });
+});
+```
+
+## Magic link verification
+
+```javascript
+it('magic link verification', () => {
+  const inbox = mail.generateInbox();
+
+  cy.visit('/signup');
+  cy.get('[data-testid="email"]').type(inbox);
+  cy.get('[data-testid="submit"]').click();
+
+  cy.wrap(mail.waitForLatest(inbox, { timeout: 30000 }))
+    .then((email) => {
+      // Navigate to verification link
+      cy.visit(email.magicLink);
+      cy.url().should('include', '/dashboard');
+    });
+});
+```
+
+## cypress.config.js
+
+```javascript
+const { defineConfig } = require('cypress');
+
+module.exports = defineConfig({
+  e2e: {
+    baseUrl: 'http://localhost:3000',
+    defaultCommandTimeout: 10000,
+    pageLoadTimeout: 60000,
+  },
+});
+```
+
+## In GitHub Actions
+
+```yaml
+- name: Generate test inbox
+  id: inbox
+  uses: zerodrop-dev/create-inbox@8706a59 # v1.0.0
+
+- name: Run Cypress tests
+  run: npx cypress run
+  env:
+    TEST_INBOX: ${{ steps.inbox.outputs.inbox }}
+    CYPRESS_BASE_URL: ${{ secrets.STAGING_URL }}
+```
+
+```javascript
+// Use CI inbox or generate locally
+const inbox = Cypress.env('TEST_INBOX') ?? mail.generateInbox();
+```
