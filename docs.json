@@ -22,7 +22,6 @@
     "name": "Get Started Free",
     "url": "https://zerodrop.dev"
   },
-  "tabs": [],
   "anchors": [
     {
       "name": "GitHub",
@@ -40,34 +39,31 @@
       "url": "https://zerodrop.instatus.com"
     }
   ],
-  "navigation": [
-    {
-      "group": "Getting Started",
-      "pages": [
-        "quickstart"
-      ]
-    },
-    {
-      "group": "Frameworks",
-      "pages": [
-        "playwright",
-        "cypress"
-      ]
-    },
-    {
-      "group": "CI/CD",
-      "pages": [
-        "github-actions"
-      ]
-    },
-    {
-      "group": "Reference",
-      "pages": [
-        "sdk-reference",
-        "self-hosting"
-      ]
-    }
-  ],
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Docs",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": ["quickstart"]
+          },
+          {
+            "group": "Frameworks",
+            "pages": ["playwright", "cypress"]
+          },
+          {
+            "group": "CI/CD",
+            "pages": ["github-actions"]
+          },
+          {
+            "group": "Reference",
+            "pages": ["sdk-reference", "self-hosting"]
+          }
+        ]
+      }
+    ]
+  },
   "footerSocials": {
     "twitter": "https://x.com/zerodropdev",
     "github": "https://github.com/zerodrop-dev"
