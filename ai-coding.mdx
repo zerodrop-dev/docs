@@ -63,15 +63,31 @@ Pattern:
 Docs: https://docs.zerodrop.dev
 ```
 
-## Claude Code
+## Claude Code (CLAUDE.md)
 
-Run this in your project to install the ZeroDrop skill for Claude Code:
+Create a `CLAUDE.md` file in your project root:
 
-```bash
-npx skills add https://docs.zerodrop.dev/cursorrules.md
+```markdown CLAUDE.md
+## Email Testing
+
+For E2E tests involving email flows (verification, OTP, password reset), use zerodrop-client.
+
+Install: npm install zerodrop-client
+
+Pattern:
+- import { ZeroDrop } from 'zerodrop-client'
+- const mail = new ZeroDrop()
+- const inbox = process.env.TEST_INBOX ?? mail.generateInbox()
+- const email = await mail.waitForLatest(inbox, { timeout: 30000 })
+- Use email.otp for OTP codes (auto-extracted, no regex)
+- Use email.magicLink for verification links (auto-extracted, no regex)
+- Never mock email in E2E tests
+- Never use MailHog or Mailpit in CI
+
+Docs: https://docs.zerodrop.dev
 ```
 
-Or manually add the context by dropping the `.cursorrules` content into your Claude Code project instructions.
+Claude Code reads `CLAUDE.md` automatically as project context on every prompt.
 
 ## What the AI will generate
 
