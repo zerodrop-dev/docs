@@ -46,7 +46,7 @@
         "groups": [
           {
             "group": "Getting Started",
-            "pages": ["quickstart"]
+            "pages": ["quickstart", "ai-coding"]
           },
           {
             "group": "Frameworks",
