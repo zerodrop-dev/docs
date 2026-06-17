@@ -1,0 +1,273 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ZeroDrop API",
+    "version": "1.0.0",
+    "description": "Disposable email inboxes for CI pipelines. No signup. No Docker. No SMTP config.\n\nBase URL: `https://zerodrop.dev`\n\nThe ZeroDrop API is a REST API that allows you to fetch emails from disposable inboxes. Inboxes are generated client-side — no API call needed to create one. Emails are stored for 30 minutes then automatically deleted.\n\nFor most use cases, use the [zerodrop-client SDK](https://npmjs.com/package/zerodrop-client) which handles polling, SSE, and OTP extraction automatically.",
+    "contact": {
+      "email": "support@zerodrop.dev",
+      "url": "https://zerodrop.dev/contact"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://github.com/zerodrop-dev/zerodrop-sdk/blob/master/LICENSE"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://zerodrop.dev",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/api/inbox/{name}": {
+      "get": {
+        "summary": "Fetch emails for an inbox",
+        "description": "Returns all emails currently stored for the given inbox name. Emails expire after 30 minutes. Returns an empty array if the inbox has no emails or has expired.",
+        "operationId": "getInbox",
+        "tags": ["Inbox"],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "The inbox name (without the domain). Example: `swift-x7k2m` for `swift-x7k2m@zerodrop-sandbox.online`",
+            "schema": {
+              "type": "string",
+              "example": "swift-x7k2m"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "description": "Identifies the client making the request. Use `sdk` for programmatic access.",
+            "schema": {
+              "type": "string",
+              "enum": ["browser", "sdk"],
+              "default": "browser"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Emails fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxResponse"
+                },
+                "example": {
+                  "emails": [
+                    {
+                      "id": "<CALMkwzNSLxzko58@mail.gmail.com>",
+                      "from": "noreply@yourapp.com",
+                      "to": "swift-x7k2m@zerodrop-sandbox.online",
+                      "subject": "Verify your email",
+                      "body": "Click here to verify your email: https://yourapp.com/verify?token=abc123",
+                      "rawBody": "...",
+                      "receivedAt": "2026-06-17T10:23:30.356Z",
+                      "otp": null,
+                      "magicLink": "https://yourapp.com/verify?token=abc123"
+                    }
+                  ],
+                  "count": 1
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Free tier allows 20 requests per 10 seconds per IP.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Too many requests. Slow down."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/inbox/{name}/stream": {
+      "get": {
+        "summary": "Stream emails via SSE",
+        "description": "Opens a Server-Sent Events stream for the given inbox. The server polls Redis with an exponential backoff strategy and pushes an event the moment an email arrives. The connection closes automatically after the first email or after 30 seconds (timeout).\n\n**Backoff strategy:**\n- 0–2s: polls every 500ms\n- 2–10s: polls every 1000ms\n- 10s+: polls every 2000ms\n\n**Events:**\n- `: connected` — connection established\n- `: keepalive` — heartbeat every 10s to prevent proxy timeout\n- `data: {email JSON}` — email arrived\n- `data: __timeout__` — no email within 30s, connection closing\n\nFor Node.js environments, use `fetch()` with `ReadableStream` rather than `EventSource` (which is browser-only).",
+        "operationId": "streamInbox",
+        "tags": ["Inbox"],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "The inbox name (without the domain).",
+            "schema": {
+              "type": "string",
+              "example": "swift-x7k2m"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream opened successfully",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-Sent Events stream. Each event is separated by double newlines.",
+                  "example": ": connected\n\n: keepalive\n\ndata: {\"id\":\"...\",\"from\":\"...\",\"subject\":\"...\"}\n\n"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/waitlist": {
+      "post": {
+        "summary": "Join the Workspaces waitlist",
+        "description": "Adds an email address to the Workspaces waitlist. You will be contacted when Workspaces launches.",
+        "operationId": "joinWaitlist",
+        "tags": ["Waitlist"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "developer@yourcompany.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully added to waitlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Email": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique message ID from the email headers (Message-ID).",
+            "example": "<CALMkwzNSLxzko58@mail.gmail.com>"
+          },
+          "from": {
+            "type": "string",
+            "description": "Sender email address.",
+            "example": "noreply@yourapp.com"
+          },
+          "to": {
+            "type": "string",
+            "description": "Recipient email address (the disposable inbox).",
+            "example": "swift-x7k2m@zerodrop-sandbox.online"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Email subject line.",
+            "example": "Verify your email"
+          },
+          "body": {
+            "type": "string",
+            "description": "Parsed plain-text body (first 5000 characters).",
+            "example": "Click here to verify: https://yourapp.com/verify?token=abc123"
+          },
+          "rawBody": {
+            "type": "string",
+            "description": "Full raw MIME message."
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "UTC timestamp when the email was received.",
+            "example": "2026-06-17T10:23:30.356Z"
+          },
+          "otp": {
+            "type": "string",
+            "nullable": true,
+            "description": "Auto-extracted OTP code (4-8 digits). Extracted at the edge before the email is stored. null if not detected.",
+            "example": "123456"
+          },
+          "magicLink": {
+            "type": "string",
+            "nullable": true,
+            "description": "Auto-extracted verification or reset URL. Detected for URLs containing verify, confirm, reset, token, activate, or auth. null if not detected.",
+            "example": "https://yourapp.com/verify?token=abc123"
+          }
+        }
+      },
+      "InboxResponse": {
+        "type": "object",
+        "properties": {
+          "emails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Email"
+            },
+            "description": "Array of emails, sorted by most recent first."
+          },
+          "count": {
+            "type": "integer",
+            "description": "Total number of emails in the inbox.",
+            "example": 1
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Too many requests. Slow down."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key for Workspaces tier. Free tier does not require authentication."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Inbox",
+      "description": "Fetch and stream emails from disposable inboxes."
+    },
+    {
+      "name": "Waitlist",
+      "description": "Join the Workspaces waitlist."
+    }
+  ]
+}
