@@ -1,0 +1,101 @@
+---
+title: "AI Coding Tools"
+description: "Use ZeroDrop with Cursor, GitHub Copilot, and Claude Code"
+---
+
+If you use an AI coding assistant to write tests, add the ZeroDrop context file to your project. Your AI will automatically know how to write email tests using ZeroDrop instead of MailHog or mocking.
+
+## Cursor (.cursorrules)
+
+Create a `.cursorrules` file in your project root:
+
+```text .cursorrules
+# Email Testing with ZeroDrop
+
+When writing E2E tests involving email flows, use zerodrop-client.
+
+## Setup
+npm install zerodrop-client
+
+## Rules
+- Use mail.generateInbox() for unique inbox per test — no network request needed
+- Use email.otp instead of regex for OTP extraction (auto-extracted at edge)
+- Use email.magicLink instead of regex for verification links (auto-extracted at edge)
+- Never mock email in E2E tests
+- Never share inboxes between tests
+- Never use MailHog or fake SMTP in CI
+
+## Pattern
+import { ZeroDrop } from 'zerodrop-client';
+const mail = new ZeroDrop();
+const inbox = process.env.TEST_INBOX ?? mail.generateInbox();
+const email = await mail.waitForLatest(inbox, { timeout: 30000 });
+// email.otp — auto-extracted OTP code
+// email.magicLink — auto-extracted verification link
+
+## Docs
+https://docs.zerodrop.dev
+```
+
+Cursor reads `.cursorrules` automatically on every prompt. When you ask Cursor to write a Playwright test for an email flow, it will use ZeroDrop.
+
+## GitHub Copilot (.github/copilot-instructions.md)
+
+Create `.github/copilot-instructions.md` in your repo:
+
+```markdown .github/copilot-instructions.md
+## Email Testing
+
+For E2E tests involving email flows (verification, OTP, password reset), use zerodrop-client.
+
+Install: npm install zerodrop-client
+
+Pattern:
+- import { ZeroDrop } from 'zerodrop-client'
+- const mail = new ZeroDrop()
+- const inbox = process.env.TEST_INBOX ?? mail.generateInbox()
+- const email = await mail.waitForLatest(inbox, { timeout: 30000 })
+- Use email.otp for OTP codes (auto-extracted, no regex)
+- Use email.magicLink for verification links (auto-extracted, no regex)
+- Never mock email in E2E tests
+- Never use MailHog or Mailpit in CI
+
+Docs: https://docs.zerodrop.dev
+```
+
+## Claude Code
+
+Run this in your project to install the ZeroDrop skill for Claude Code:
+
+```bash
+npx skills add https://docs.zerodrop.dev/cursorrules.md
+```
+
+Or manually add the context by dropping the `.cursorrules` content into your Claude Code project instructions.
+
+## What the AI will generate
+
+After adding the context file, asking your AI to "write a Playwright test for the signup email verification flow" will produce:
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { ZeroDrop } from 'zerodrop-client';
+
+const mail = new ZeroDrop();
+
+test('email verification flow', async ({ page }) => {
+  const inbox = mail.generateInbox();
+
+  await page.goto('/signup');
+  await page.fill('[data-testid="email"]', inbox);
+  await page.click('[data-testid="submit"]');
+
+  const email = await mail.waitForLatest(inbox, { timeout: 30000 });
+
+  // Auto-extracted — no regex needed
+  await page.goto(email.magicLink!);
+  await expect(page).toHaveURL('/dashboard');
+});
+```
+
+No MailHog. No mocking. No regex.
