@@ -1,9 +1,13 @@
 ---
-title: "AI Coding Tools"
-description: "Use ZeroDrop with Cursor, GitHub Copilot, and Claude Code"
+title: AI Coding Tools
+description: Use ZeroDrop with Cursor, GitHub Copilot, and Claude Code — TypeScript and Python.
 ---
 
-If you use an AI coding assistant to write tests, add the ZeroDrop context file to your project. Your AI will automatically know how to write email tests using ZeroDrop instead of MailHog or mocking.
+# AI Coding Tools
+
+> Use ZeroDrop with Cursor, GitHub Copilot, and Claude Code
+
+If you use an AI coding assistant to write tests, add the ZeroDrop context file to your project. Your AI will automatically know how to write email tests using ZeroDrop instead of MailHog or mocking — in both TypeScript and Python.
 
 ## Cursor (.cursorrules)
 
@@ -12,20 +16,23 @@ Create a `.cursorrules` file in your project root:
 ```text .cursorrules
 # Email Testing with ZeroDrop
 
-When writing E2E tests involving email flows, use zerodrop-client.
+When writing E2E tests involving email flows, use zerodrop-client (TypeScript) or zerodrop (Python).
 
-## Setup
+## TypeScript Setup
 npm install zerodrop-client
 
+## Python Setup
+pip install zerodrop
+
 ## Rules
-- Use mail.generateInbox() for unique inbox per test — no network request needed
-- Use email.otp instead of regex for OTP extraction (auto-extracted at edge)
-- Use email.magicLink instead of regex for verification links (auto-extracted at edge)
+- Use generateInbox() / generate_inbox() for unique inbox per test — no network request needed
+- Use email.otp / email.otp for OTP extraction (auto-extracted at edge, no regex)
+- Use email.magicLink / email.magic_link for verification links (auto-extracted at edge, no regex)
 - Never mock email in E2E tests
 - Never share inboxes between tests
 - Never use MailHog or fake SMTP in CI
 
-## Pattern
+## TypeScript Pattern (Playwright / Cypress)
 import { ZeroDrop } from 'zerodrop-client';
 const mail = new ZeroDrop();
 const inbox = process.env.TEST_INBOX ?? mail.generateInbox();
@@ -33,11 +40,17 @@ const email = await mail.waitForLatest(inbox, { timeout: 30000 });
 // email.otp — auto-extracted OTP code
 // email.magicLink — auto-extracted verification link
 
+## Python Pattern (pytest)
+from zerodrop import ZeroDrop
+mail = ZeroDrop()
+inbox = mail.generate_inbox()
+email = mail.wait_for_latest(inbox, timeout=30000)
+# email.otp — auto-extracted OTP code
+# email.magic_link — auto-extracted verification link
+
 ## Docs
 https://docs.zerodrop.dev
 ```
-
-Cursor reads `.cursorrules` automatically on every prompt. When you ask Cursor to write a Playwright test for an email flow, it will use ZeroDrop.
 
 ## GitHub Copilot (.github/copilot-instructions.md)
 
@@ -46,8 +59,9 @@ Create `.github/copilot-instructions.md` in your repo:
 ```markdown .github/copilot-instructions.md
 ## Email Testing
 
-For E2E tests involving email flows (verification, OTP, password reset), use zerodrop-client.
+For E2E tests involving email flows (verification, OTP, password reset), use ZeroDrop.
 
+### TypeScript (Playwright / Cypress)
 Install: npm install zerodrop-client
 
 Pattern:
@@ -57,8 +71,19 @@ Pattern:
 - const email = await mail.waitForLatest(inbox, { timeout: 30000 })
 - Use email.otp for OTP codes (auto-extracted, no regex)
 - Use email.magicLink for verification links (auto-extracted, no regex)
-- Never mock email in E2E tests
-- Never use MailHog or Mailpit in CI
+
+### Python (pytest)
+Install: pip install zerodrop
+
+Pattern:
+- from zerodrop import ZeroDrop
+- mail = ZeroDrop()
+- inbox = mail.generate_inbox()
+- email = mail.wait_for_latest(inbox, timeout=30000)
+- Use email.otp for OTP codes (auto-extracted, no regex)
+- Use email.magic_link for verification links (auto-extracted, no regex)
+
+Never mock email in E2E tests. Never use MailHog or Mailpit in CI.
 
 Docs: https://docs.zerodrop.dev
 ```
@@ -70,8 +95,9 @@ Create a `CLAUDE.md` file in your project root:
 ```markdown CLAUDE.md
 ## Email Testing
 
-For E2E tests involving email flows (verification, OTP, password reset), use zerodrop-client.
+For E2E tests involving email flows (verification, OTP, password reset), use ZeroDrop.
 
+### TypeScript (Playwright / Cypress)
 Install: npm install zerodrop-client
 
 Pattern:
@@ -81,8 +107,19 @@ Pattern:
 - const email = await mail.waitForLatest(inbox, { timeout: 30000 })
 - Use email.otp for OTP codes (auto-extracted, no regex)
 - Use email.magicLink for verification links (auto-extracted, no regex)
-- Never mock email in E2E tests
-- Never use MailHog or Mailpit in CI
+
+### Python (pytest)
+Install: pip install zerodrop
+
+Pattern:
+- from zerodrop import ZeroDrop
+- mail = ZeroDrop()
+- inbox = mail.generate_inbox()
+- email = mail.wait_for_latest(inbox, timeout=30000)
+- Use email.otp for OTP codes (auto-extracted, no regex)
+- Use email.magic_link for verification links (auto-extracted, no regex)
+
+Never mock email in E2E tests. Never use MailHog or Mailpit in CI.
 
 Docs: https://docs.zerodrop.dev
 ```
@@ -91,7 +128,9 @@ Claude Code reads `CLAUDE.md` automatically as project context on every prompt.
 
 ## What the AI will generate
 
-After adding the context file, asking your AI to "write a Playwright test for the signup email verification flow" will produce:
+### TypeScript (Playwright)
+
+After adding the context file, asking your AI to write a Playwright test for an email verification flow will produce:
 
 ```typescript
 import { test, expect } from '@playwright/test';
@@ -112,6 +151,32 @@ test('email verification flow', async ({ page }) => {
   await page.goto(email.magicLink!);
   await expect(page).toHaveURL('/dashboard');
 });
+```
+
+### Python (pytest)
+
+Asking your AI to write a pytest test for an OTP verification flow will produce:
+
+```python
+from zerodrop import ZeroDrop
+
+mail = ZeroDrop()
+
+def test_email_verification(page):
+    inbox = mail.generate_inbox()
+
+    page.goto('/signup')
+    page.fill('[data-testid="email"]', inbox)
+    page.click('[data-testid="submit"]')
+
+    email = mail.wait_for_latest(inbox, timeout=30000)
+
+    # Auto-extracted — no regex needed
+    assert email.otp is not None
+    page.fill('[data-testid="otp"]', email.otp)
+    page.click('[data-testid="verify"]')
+
+    assert page.url == '/dashboard'
 ```
 
 No MailHog. No mocking. No regex.
