@@ -1,75 +1,308 @@
-{
-  "$schema": "https://mintlify.com/schema.json",
-  "name": "ZeroDrop",
-  "theme": "mint",
-  "logo": {
-    "dark": "/logo/dark.svg",
-    "light": "/logo/light.svg"
-  },
-  "favicon": "/favicon.svg",
-  "colors": {
-    "primary": "#00ff88",
-    "light": "#00ff88",
-    "dark": "#00cc6a"
-  },
-  "topbarLinks": [
-    {
-      "name": "zerodrop.dev",
-      "url": "https://zerodrop.dev"
-    }
-  ],
-  "topbarCtaButton": {
-    "name": "Get Started Free",
-    "url": "https://zerodrop.dev"
-  },
-  "anchors": [
-    {
-      "name": "GitHub",
-      "icon": "github",
-      "url": "https://github.com/zerodrop-dev"
-    },
-    {
-      "name": "npm",
-      "icon": "npm",
-      "url": "https://npmjs.com/package/zerodrop-client"
-    },
-    {
-      "name": "Status",
-      "icon": "signal",
-      "url": "https://zerodrop.instatus.com"
-    }
-  ],
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Docs",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "pages": ["quickstart", "ai-coding"]
-          },
-          {
-            "group": "Frameworks",
-            "pages": ["playwright", "cypress"]
-          },
-          {
-            "group": "CI/CD",
-            "pages": ["github-actions"]
-          },
-          {
-            "group": "Reference",
-            "pages": ["sdk-reference", "self-hosting"]
-          }
-        ]
-      },
-      {
-        "tab": "API Reference",
-        "openapi": "/openapi.json"
-      }
-    ]
-  },
-  "footerSocials": {
-    "twitter": "https://x.com/zerodropdev",
-    "github": "https://github.com/zerodrop-dev"
-  }
-}
+---
+title: Python SDK
+description: ZeroDrop Python SDK reference — email.otp and email.magic_link auto-extracted. No Docker, no regex, no signup.
+---
+
+# Python SDK
+
+Full API reference for `zerodrop` — the ZeroDrop Python SDK.
+
+## Installation
+
+```bash
+pip install zerodrop
+```
+
+No dependencies. Python 3.8+.
+
+## ZeroDrop class
+
+```python
+from zerodrop import ZeroDrop
+
+mail = ZeroDrop(api_key=None, base_url="https://zerodrop.dev")
+```
+
+### Parameters
+
+| Parameter  | Type                | Description                               |
+| ---------- | ------------------- | ----------------------------------------- |
+| `api_key`  | `str` (optional)    | API key for Workspaces tier               |
+| `base_url` | `str` (optional)    | Custom base URL for self-hosted instances |
+
+Without an API key, ZeroDrop runs in free sandbox mode with a shared domain and 30-minute TTL.
+
+---
+
+## generate\_inbox()
+
+```python
+mail.generate_inbox() -> str
+```
+
+Generates a unique inbox address instantly. No network request.
+
+```python
+inbox = mail.generate_inbox()
+# "swift-x7k2m@zerodrop-sandbox.online"
+```
+
+---
+
+## wait\_for\_latest()
+
+```python
+mail.wait_for_latest(
+    inbox: str,
+    timeout: int = 10000,
+    poll_interval: float = 2.0,
+    filter_: Optional[ZeroDropFilter] = None
+) -> ZeroDropEmail
+```
+
+Polls until an email arrives in the inbox. Raises `ZeroDropTimeoutError` if no email arrives within the timeout.
+
+### Parameters
+
+| Parameter       | Type                | Default  | Description                              |
+| --------------- | ------------------- | -------- | ---------------------------------------- |
+| `inbox`         | `str`               | required | Inbox address to poll                    |
+| `timeout`       | `int`               | `10000`  | Milliseconds to wait                     |
+| `poll_interval` | `float`             | `2.0`    | Seconds between polls                    |
+| `filter_`       | `ZeroDropFilter`    | `None`   | Optional filter to match specific emails |
+
+```python
+# Default — 10s timeout
+email = mail.wait_for_latest(inbox)
+
+# Custom timeout
+email = mail.wait_for_latest(inbox, timeout=30000)
+
+# With filter
+email = mail.wait_for_latest(inbox, filter_=ZeroDropFilter(has_otp=True))
+```
+
+---
+
+## fetch\_latest()
+
+```python
+mail.fetch_latest(
+    inbox: str,
+    filter_: Optional[ZeroDropFilter] = None
+) -> Optional[ZeroDropEmail]
+```
+
+Fetches the latest email without waiting. Returns `None` if the inbox is empty or no email matches the filter.
+
+```python
+email = mail.fetch_latest(inbox)
+if email:
+    print(email.subject)
+```
+
+---
+
+## Email Filtering
+
+Filter emails by sender, subject, body, or extracted fields. Useful when multiple emails land in the same inbox.
+
+```python
+from zerodrop import ZeroDrop, ZeroDropFilter
+
+mail = ZeroDrop()
+
+# Only match emails from a specific sender
+email = mail.wait_for_latest(inbox, filter_=ZeroDropFilter(
+    from_="noreply@yourapp.com"
+))
+
+# Only match emails with a specific subject
+email = mail.wait_for_latest(inbox, filter_=ZeroDropFilter(
+    subject="Verify your email"
+))
+
+# Only match emails that contain an OTP
+email = mail.wait_for_latest(inbox, filter_=ZeroDropFilter(
+    has_otp=True
+))
+
+# Only match emails that contain a magic link
+email = mail.wait_for_latest(inbox, filter_=ZeroDropFilter(
+    has_magic_link=True
+))
+
+# Combine multiple filters
+email = mail.wait_for_latest(inbox, timeout=15000, filter_=ZeroDropFilter(
+    from_="noreply@yourapp.com",
+    subject="Reset",
+    has_magic_link=True
+))
+```
+
+All string filters are case-insensitive partial matches.
+
+---
+
+## ZeroDropEmail type
+
+```python
+@dataclass
+class ZeroDropEmail:
+    id: str                    # Unique message ID
+    from_: str                 # Sender address
+    to: str                    # Recipient address
+    subject: str               # Email subject
+    body: str                  # Parsed plain-text body
+    raw_body: str              # Full raw MIME message
+    received_at: datetime      # UTC timestamp
+    otp: Optional[str]         # Auto-extracted OTP code (4-8 digits)
+    magic_link: Optional[str]  # Auto-extracted verification/reset link
+```
+
+### otp
+
+4-8 digit numeric code extracted from the email body. Detected near labels like `code`, `otp`, `pin`, `verification`. `None` if not detected.
+
+```python
+email = mail.wait_for_latest(inbox)
+print(email.otp)  # "123456" or None
+```
+
+### magic\_link
+
+Verification or reset URL extracted from the email body. Detected for URLs containing `verify`, `confirm`, `reset`, `token`, `activate`, or `auth`. `None` if not detected.
+
+```python
+print(email.magic_link)  # "https://app.com/verify?token=abc" or None
+```
+
+---
+
+## ZeroDropFilter type
+
+```python
+@dataclass
+class ZeroDropFilter:
+    from_: Optional[str] = None           # Partial match on sender address
+    subject: Optional[str] = None         # Partial match on subject line
+    body: Optional[str] = None            # Partial match on email body
+    has_otp: Optional[bool] = None        # Only match emails with an OTP
+    has_magic_link: Optional[bool] = None # Only match emails with a magic link
+```
+
+---
+
+## Error types
+
+### ZeroDropTimeoutError
+
+Raised when no email arrives within the timeout.
+
+```python
+from zerodrop import ZeroDrop, ZeroDropTimeoutError
+
+try:
+    email = mail.wait_for_latest(inbox, timeout=10000)
+except ZeroDropTimeoutError:
+    print("No email received in time")
+```
+
+### ZeroDropNetworkError
+
+Raised when the API is unreachable. Includes a link to the status page.
+
+```python
+from zerodrop import ZeroDropNetworkError
+
+try:
+    email = mail.fetch_latest(inbox)
+except ZeroDropNetworkError as e:
+    print(f"Network error — check https://zerodrop.instatus.com")
+```
+
+### ZeroDropAuthError
+
+Raised when an invalid API key is provided.
+
+---
+
+## pytest example
+
+```python
+import pytest
+from zerodrop import ZeroDrop
+
+mail = ZeroDrop()
+
+def test_signup_email_verification(page):
+    inbox = mail.generate_inbox()
+
+    page.goto("/signup")
+    page.fill('[name="email"]', inbox)
+    page.fill('[name="password"]', "TestPassword123!")
+    page.click('[type="submit"]')
+
+    # Wait for verification email
+    email = mail.wait_for_latest(inbox, timeout=15000)
+
+    # OTP auto-extracted — no regex needed
+    assert email.otp is not None
+    page.fill('[name="otp"]', email.otp)
+    page.click('[type="submit"]')
+
+    assert page.url == "/dashboard"
+
+
+def test_magic_link_login(page):
+    inbox = mail.generate_inbox()
+
+    page.goto("/login")
+    page.fill('[name="email"]', inbox)
+    page.click('button:has-text("Send magic link")')
+
+    email = mail.wait_for_latest(inbox, timeout=15000)
+
+    # magic_link auto-extracted — no HTML parsing needed
+    assert email.magic_link is not None
+    page.goto(email.magic_link)
+
+    assert page.url == "/dashboard"
+```
+
+---
+
+## Parallel test runs
+
+`generate_inbox()` runs locally — no network request, no throttling:
+
+```python
+# Safe to run in parallel — generate_inbox() is local
+inboxes = [mail.generate_inbox() for _ in range(50)]
+```
+
+---
+
+## Free vs Workspace
+
+|                      | Free    | Workspace |
+| -------------------- | ------- | --------- |
+| Inbox generation     | ✓       | ✓         |
+| OTP auto-extraction  | ✓       | ✓         |
+| Magic link extraction| ✓       | ✓         |
+| Email filtering      | ✓       | ✓         |
+| Email retention      | 30 min  | Extended  |
+| Custom domains       | ✗       | ✓         |
+| API key              | ✗       | ✓         |
+| Webhooks             | ✗       | ✓         |
+| AI spam filter       | On      | Off       |
+
+Get a Workspace at [zerodrop.dev/pricing](https://zerodrop.dev/pricing)
+
+---
+
+## Zero telemetry
+
+The SDK does not send analytics, usage metrics, or environment data to any server. The only network requests made are explicit inbox polls to `zerodrop.dev/api/inbox/{name}`.
+
+Your CI pipeline is your business.
