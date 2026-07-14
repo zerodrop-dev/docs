@@ -55,7 +55,7 @@
           },
           {
             "group": "SDKs",
-            "pages": ["sdk-reference", "python" "go", "ruby", "php", "java"]
+            "pages": ["sdk-reference", "python", "go", "ruby", "php", "java"]
           },
           {
             "group": "Frameworks",
