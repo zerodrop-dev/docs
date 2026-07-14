@@ -1,0 +1,127 @@
+---
+title: "Java SDK"
+description: "Test email flows in JUnit, Selenium and Playwright for Java — OTPs and magic links auto-extracted."
+---
+
+## Install
+
+**Gradle:**
+
+```groovy
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    testImplementation 'com.github.zerodrop-dev:zerodrop-java:v0.1.0'
+}
+```
+
+**Maven:**
+
+```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependency>
+    <groupId>com.github.zerodrop-dev</groupId>
+    <artifactId>zerodrop-java</artifactId>
+    <version>v0.1.0</version>
+    <scope>test</scope>
+</dependency>
+```
+
+Java 11+ · one dependency (Gson).
+
+## Quick start
+
+```java
+import dev.zerodrop.ZeroDrop;
+import dev.zerodrop.Email;
+import java.time.Duration;
+
+ZeroDrop mail = ZeroDrop.create();
+String inbox = mail.generateInbox();
+// => "swift-x7k29ab@zerodrop-sandbox.online"
+
+// Trigger your app's email flow with the inbox address...
+
+Email email = mail.waitForLatest(inbox, Duration.ofSeconds(15));
+
+email.otp();       // Optional["123456"] — auto-extracted, no regex
+email.magicLink(); // Optional["https://..."] — auto-extracted
+```
+
+## JUnit 5 + Selenium
+
+```java
+@Test
+void emailVerificationWithOtp() {
+    ZeroDrop mail = ZeroDrop.create();
+    String inbox = mail.generateInbox();
+
+    driver.get("https://yourapp.com/signup");
+    driver.findElement(By.name("email")).sendKeys(inbox);
+    driver.findElement(By.name("password")).sendKeys("TestPassword123!");
+    driver.findElement(By.cssSelector("button[type=submit]")).click();
+
+    Email email = mail.waitForLatest(inbox, Duration.ofSeconds(15));
+
+    String otp = email.otp().orElseThrow();
+    driver.findElement(By.name("otp")).sendKeys(otp);
+    driver.findElement(By.cssSelector("button[type=submit]")).click();
+
+    assertTrue(driver.getCurrentUrl().endsWith("/dashboard"));
+}
+```
+
+## Filtering
+
+```java
+import dev.zerodrop.Filter;
+
+Filter filter = Filter.builder()
+    .from("noreply@yourapp.com")
+    .hasOtp(true)
+    .build();
+
+Email email = mail.waitForLatest(inbox, Duration.ofSeconds(15), filter);
+```
+
+All string filters are case-insensitive partial matches.
+
+## Parallel tests
+
+`generateInbox()` runs locally — safe with JUnit parallel execution and TestNG parallel suites. Every call returns a unique isolated inbox.
+
+## Error handling
+
+```java
+try {
+    Email email = mail.waitForLatest(inbox, Duration.ofSeconds(15));
+} catch (ZeroDropException.Timeout e) {
+    // No email arrived
+} catch (ZeroDropException.Auth e) {
+    // Invalid API key
+} catch (ZeroDropException.Network e) {
+    // Transport failure
+}
+```
+
+## Workspaces & self-hosting
+
+```java
+ZeroDrop mail = ZeroDrop.builder()
+    .apiKey(System.getenv("ZERODROP_API_KEY"))
+    .baseUrl("https://your-instance.yourdomain.com")
+    .build();
+```
+
+## Links
+
+- [JitPack](https://jitpack.io/#zerodrop-dev/zerodrop-java)
+- [GitHub](https://github.com/zerodrop-dev/zerodrop-java)

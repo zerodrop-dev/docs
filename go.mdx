@@ -1,0 +1,131 @@
+---
+title: "Go SDK"
+description: "Test email flows in Go — OTPs and magic links auto-extracted. Zero dependencies, stdlib only."
+---
+
+## Install
+
+```bash
+go get github.com/zerodrop-dev/zerodrop-go
+```
+
+Zero dependencies — stdlib only. Go 1.21+.
+
+## Quick start
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	zerodrop "github.com/zerodrop-dev/zerodrop-go"
+)
+
+func main() {
+	client := zerodrop.New()
+	inbox := client.GenerateInbox()
+	// => "swift-x7k29a@zerodrop-sandbox.online"
+
+	// Trigger your app's email flow with the inbox address...
+
+	email, err := client.WaitForLatest(context.Background(), inbox, &zerodrop.Options{
+		Timeout: 15 * time.Second,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(email.OTP)       // "123456" — auto-extracted, no regex
+	fmt.Println(email.MagicLink) // "https://..." — auto-extracted
+}
+```
+
+## go test
+
+```go
+func TestSignupEmailVerification(t *testing.T) {
+	client := zerodrop.New()
+	inbox := client.GenerateInbox()
+
+	// Trigger signup with the inbox address...
+
+	email, err := client.WaitForLatest(context.Background(), inbox, &zerodrop.Options{
+		Timeout: 15 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("no verification email: %v", err)
+	}
+
+	if email.OTP == "" {
+		t.Fatal("expected OTP in verification email")
+	}
+}
+```
+
+## SSE — sub-second delivery
+
+`WaitForLatest` uses Server-Sent Events by default with automatic polling fallback:
+
+```go
+// Force polling mode if needed
+email, err := client.WaitForLatest(ctx, inbox, &zerodrop.Options{
+	DisableSSE: true,
+})
+```
+
+## Filtering
+
+```go
+email, err := client.WaitForLatest(ctx, inbox, &zerodrop.Options{
+	Timeout: 15 * time.Second,
+	Filter: &zerodrop.Filter{
+		From:    "noreply@yourapp.com",
+		Subject: "Verify",
+		HasOTP:  zerodrop.Bool(true),
+	},
+})
+```
+
+All string filters are case-insensitive partial matches.
+
+## Parallel tests
+
+`GenerateInbox` runs locally — safe with `t.Parallel()`, zero collisions:
+
+```go
+func TestParallelSignups(t *testing.T) {
+	t.Parallel()
+	client := zerodrop.New()
+	inbox := client.GenerateInbox() // unique per call
+	// ...
+}
+```
+
+## Error handling
+
+```go
+var timeoutErr *zerodrop.TimeoutError
+if errors.As(err, &timeoutErr) {
+	// No email arrived
+}
+if errors.Is(err, zerodrop.ErrUnauthorized) {
+	// Invalid API key
+}
+```
+
+## Workspaces & self-hosting
+
+```go
+client := zerodrop.New(
+	zerodrop.WithAPIKey(os.Getenv("ZERODROP_API_KEY")),
+	zerodrop.WithBaseURL("https://your-instance.yourdomain.com"),
+)
+```
+
+## Links
+
+- [pkg.go.dev reference](https://pkg.go.dev/github.com/zerodrop-dev/zerodrop-go)
+- [GitHub](https://github.com/zerodrop-dev/zerodrop-go)

@@ -1,0 +1,107 @@
+---
+title: "Ruby SDK"
+description: "Test email flows in RSpec, Minitest and Capybara — OTPs and magic links auto-extracted. Zero dependencies."
+---
+
+## Install
+
+```bash
+gem install zerodrop
+```
+
+Or in your Gemfile:
+
+```ruby
+gem "zerodrop", group: :test
+```
+
+Zero runtime dependencies. Ruby 3.0+.
+
+## Quick start
+
+```ruby
+require "zerodrop"
+
+mail = ZeroDrop::Client.new
+inbox = mail.generate_inbox
+# => "swift-x7k29ab@zerodrop-sandbox.online"
+
+# Trigger your app's email flow with the inbox address...
+
+email = mail.wait_for_latest(inbox, timeout: 15)
+
+email.otp        # => "123456" — auto-extracted, no regex
+email.magic_link # => "https://..." — auto-extracted
+```
+
+## RSpec + Capybara
+
+```ruby
+RSpec.describe "Signup email verification", type: :system do
+  let(:mail) { ZeroDrop::Client.new }
+
+  it "verifies the account via emailed OTP" do
+    inbox = mail.generate_inbox
+
+    visit "/signup"
+    fill_in "Email", with: inbox
+    fill_in "Password", with: "TestPassword123!"
+    click_button "Create account"
+
+    email = mail.wait_for_latest(inbox, timeout: 15)
+
+    expect(email.otp).not_to be_nil
+    fill_in "Code", with: email.otp
+    click_button "Verify"
+
+    expect(page).to have_current_path("/dashboard")
+  end
+end
+```
+
+## Filtering
+
+```ruby
+email = mail.wait_for_latest(
+  inbox,
+  timeout: 15,
+  filter: ZeroDrop::Filter.new(
+    from: "noreply@yourapp.com",
+    has_otp: true
+  )
+)
+```
+
+All string filters are case-insensitive partial matches.
+
+## Parallel tests
+
+`generate_inbox` runs locally — safe with parallel_tests, flatware, turbo_tests. Every call returns a unique isolated inbox.
+
+## Error handling
+
+```ruby
+begin
+  email = mail.wait_for_latest(inbox, timeout: 15)
+rescue ZeroDrop::TimeoutError
+  # No email arrived
+rescue ZeroDrop::AuthError
+  # Invalid API key
+rescue ZeroDrop::NetworkError => e
+  # Transport failure
+end
+```
+
+## Workspaces & self-hosting
+
+```ruby
+mail = ZeroDrop::Client.new(
+  api_key: ENV["ZERODROP_API_KEY"],
+  base_url: "https://your-instance.yourdomain.com"
+)
+```
+
+## Links
+
+- [RubyGems](https://rubygems.org/gems/zerodrop)
+- [GitHub](https://github.com/zerodrop-dev/zerodrop-ruby)
