@@ -21,7 +21,7 @@ jobs:
 
       - name: Generate test inbox
         id: inbox
-        uses: zerodrop-dev/create-inbox@8706a59 # v1.0.0
+        uses: zerodrop-dev/setup-zerodrop@36c6685cce921fbe8b6353a71292c8e262124e3e # v1.0.0
 
       - name: Run Playwright tests
         run: npx playwright test
@@ -46,10 +46,10 @@ Pin to a specific commit SHA for supply chain security:
 
 ```yaml
 # Recommended — pin to SHA
-uses: zerodrop-dev/create-inbox@8706a59 # v1.0.0
+uses: zerodrop-dev/setup-zerodrop@36c6685cce921fbe8b6353a71292c8e262124e3e # v1.0.0
 
 # Not recommended — floating tag
-uses: zerodrop-dev/create-inbox@v1
+uses: zerodrop-dev/setup-zerodrop@v1
 ```
 
 ## Parallel matrix builds
@@ -65,7 +65,7 @@ jobs:
     steps:
       - name: Generate test inbox
         id: inbox
-        uses: zerodrop-dev/create-inbox@8706a59
+        uses: zerodrop-dev/setup-zerodrop@36c6685cce921fbe8b6353a71292c8e262124e3e
 
       - name: Run tests
         run: npx playwright test --project=${{ matrix.browser }}
@@ -105,7 +105,7 @@ jobs:
 
       - name: Generate test inbox
         id: inbox
-        uses: zerodrop-dev/create-inbox@8706a59 # v1.0.0
+        uses: zerodrop-dev/setup-zerodrop@36c6685cce921fbe8b6353a71292c8e262124e3e # v1.0.0
 
       - name: Run E2E tests
         run: npx playwright test
@@ -132,4 +132,4 @@ jobs:
 
 The Action generates inbox names locally on the runner — no network request is made during generation. The inbox address is a random string; it does not contact ZeroDrop servers until your tests begin polling.
 
-See [SECURITY.md](https://github.com/zerodrop-dev/create-inbox/blob/main/SECURITY.md) for full supply chain documentation.
+See [SECURITY.md](https://github.com/zerodrop-dev/setup-zerodrop/blob/main/SECURITY.md) for full supply chain documentation.
