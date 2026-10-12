@@ -48,7 +48,7 @@ console.log(email.magicLink); // "https://..."
 
 1. **Generate an inbox** — local, instant, no network request
 2. **Send an email** — your app sends a real verification email
-3. **Catch it at the edge** — Cloudflare Worker catches it, Llama 3.1 filters spam
+3. **Catch it at the edge** — a Cloudflare Worker catches it and checks the sender
 4. **Auto-extract OTP** — stored alongside the email, ready to use
 5. **Sub-second delivery** — SDK uses SSE, falls back to polling
 
