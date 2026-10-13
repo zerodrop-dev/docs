@@ -27,10 +27,10 @@ mail = ZeroDrop(api_key=None, base_url="https://zerodrop.dev")
 
 | Parameter  | Type                | Description                               |
 | ---------- | ------------------- | ----------------------------------------- |
-| `api_key`  | `str` (optional)    | API key for Workspaces tier               |
+| `api_key`  | `str` (optional)    | Free API key from [zerodrop.dev/keys](https://zerodrop.dev/keys). Defaults to the `ZERODROP_API_KEY` environment variable. |
 | `base_url` | `str` (optional)    | Custom base URL for self-hosted instances |
 
-Without an API key, ZeroDrop runs in free sandbox mode with a shared domain and 30-minute TTL.
+Without an API key, anyone who knows an inbox's name can read it, and inboxes expire after 30 minutes on a shared domain. With a free key (zerodrop 0.2.0 or later), `generate_inbox()` starts names with your key's prefix, and only your key can read those inboxes. `mail.prefix` holds the prefix (`"k7x2"`), or `None` without a key.
 
 ---
 
@@ -40,11 +40,12 @@ Without an API key, ZeroDrop runs in free sandbox mode with a shared domain and 
 mail.generate_inbox() -> str
 ```
 
-Generates a unique inbox address instantly. No network request.
+Generates a unique inbox address instantly. No network request. With a key, the name starts with your prefix.
 
 ```python
 inbox = mail.generate_inbox()
-# "swift-x7k2m@zerodrop-sandbox.online"
+# "swift-x7k2m@zerodrop-sandbox.online" without a key
+# "k7x2-swift-x7k2m@zerodrop-sandbox.online" with the key zd_k7x2_…
 ```
 
 ---
@@ -223,7 +224,7 @@ except ZeroDropNetworkError as e:
 
 ### ZeroDropAuthError
 
-Raised when an invalid API key is provided.
+Raised on a 401: the inbox belongs to an account's prefix and the request had no key or the wrong one. The message carries the server's reason.
 
 ---
 
@@ -293,7 +294,7 @@ inboxes = [mail.generate_inbox() for _ in range(50)]
 | Email filtering      | ✓       | ✓         |
 | Email retention      | 30 min  | Extended  |
 | Custom domains       | ✗       | ✓         |
-| API key              | ✗       | ✓         |
+| API key              | ✓ free  | ✓         |
 | Webhooks             | ✗       | ✓         |
 
 Get a Workspace at [zerodrop.dev/pricing](https://zerodrop.dev/pricing)

@@ -24,10 +24,10 @@ const mail = new ZeroDrop(apiKey?, options?);
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `apiKey` | `string` (optional) | API key for Workspaces tier |
+| `apiKey` | `string` (optional) | Free API key from [zerodrop.dev/keys](https://zerodrop.dev/keys). Defaults to the `ZERODROP_API_KEY` environment variable. |
 | `options.baseUrl` | `string` (optional) | Custom base URL for self-hosted instances |
 
-Without an API key, ZeroDrop runs in free sandbox mode with a shared domain and 30-minute TTL.
+Without an API key, anyone who knows an inbox's name can read it, and inboxes expire after 30 minutes on a shared domain. With a free key (zerodrop-client 0.3.0 or later), `generateInbox()` starts names with your key's prefix, and only your key can read those inboxes. `mail.prefix` holds the prefix (`"k7x2"`), or `null` without a key.
 
 ---
 
@@ -37,11 +37,12 @@ Without an API key, ZeroDrop runs in free sandbox mode with a shared domain and 
 mail.generateInbox(): string
 ```
 
-Generates a unique inbox address instantly. No network request.
+Generates a unique inbox address instantly. No network request. With a key, the name starts with your prefix.
 
 ```typescript
 const inbox = mail.generateInbox();
-// "swift-x7k2m@zerodrop-sandbox.online"
+// "swift-x7k2m@zerodrop-sandbox.online" without a key
+// "k7x2-swift-x7k2m@zerodrop-sandbox.online" with the key zd_k7x2_…
 ```
 
 ---
@@ -165,7 +166,7 @@ try {
 
 ### ZeroDropAuthError
 
-Thrown when an invalid API key is provided.
+Thrown on a 401: the inbox belongs to an account's prefix and the request had no key or the wrong one. The message carries the server's reason.
 
 ---
 
