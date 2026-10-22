@@ -92,6 +92,17 @@ All string filters are case-insensitive partial matches.
 
 `generateInbox()` runs locally — safe with Paratest and parallel Dusk runs. Every call returns a unique isolated inbox.
 
+## Free API key (private inboxes)
+
+Without a key, anyone who knows an inbox's name can read it. Sign in with GitHub at [zerodrop.dev/keys](https://zerodrop.dev/keys) for a free key and set it as `ZERODROP_API_KEY`. With zerodrop/zerodrop 0.2.0 or later, the client reads it, `generateInbox()` starts names with your key's prefix, and only your key can read those inboxes:
+
+```php
+$mail = new Client(); // reads ZERODROP_API_KEY
+$mail->generateInbox();
+// "k7x2-swift-x7k29ab@zerodrop-sandbox.online", where k7x2 is your prefix
+$mail->prefix(); // "k7x2"
+```
+
 ## Error handling
 
 ```php
@@ -104,7 +115,7 @@ try {
 } catch (TimeoutException $e) {
     // No email arrived
 } catch (AuthException $e) {
-    // Invalid API key
+    // The inbox belongs to another key's prefix, or your key is wrong; $e->getMessage() says which
 } catch (NetworkException $e) {
     // Transport failure
 }
@@ -113,8 +124,8 @@ try {
 ## Workspaces & self-hosting
 
 ```php
+// The key comes from ZERODROP_API_KEY (0.2.0 or later), or pass apiKey: yourself
 $mail = new Client(
-    apiKey: getenv('ZERODROP_API_KEY'),
     baseUrl: 'https://your-instance.yourdomain.com',
 );
 ```

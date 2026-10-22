@@ -78,6 +78,17 @@ All string filters are case-insensitive partial matches.
 
 `generate_inbox` runs locally — safe with parallel_tests, flatware, turbo_tests. Every call returns a unique isolated inbox.
 
+## Free API key (private inboxes)
+
+Without a key, anyone who knows an inbox's name can read it. Sign in with GitHub at [zerodrop.dev/keys](https://zerodrop.dev/keys) for a free key and set it as `ZERODROP_API_KEY`. With zerodrop 0.2.0 or later, the client reads it, `generate_inbox` starts names with your key's prefix, and only your key can read those inboxes:
+
+```ruby
+mail = ZeroDrop::Client.new # reads ZERODROP_API_KEY
+mail.generate_inbox
+# => "k7x2-swift-x7k29ab@zerodrop-sandbox.online", where k7x2 is your prefix
+mail.prefix # => "k7x2"
+```
+
 ## Error handling
 
 ```ruby
@@ -85,8 +96,8 @@ begin
   email = mail.wait_for_latest(inbox, timeout: 15)
 rescue ZeroDrop::TimeoutError
   # No email arrived
-rescue ZeroDrop::AuthError
-  # Invalid API key
+rescue ZeroDrop::AuthError => e
+  # The inbox belongs to another key's prefix, or your key is wrong; e.message says which
 rescue ZeroDrop::NetworkError => e
   # Transport failure
 end
@@ -96,7 +107,7 @@ end
 
 ```ruby
 mail = ZeroDrop::Client.new(
-  api_key: ENV["ZERODROP_API_KEY"],
+  api_key: ENV["ZERODROP_API_KEY"], # optional since 0.2.0: the client reads it anyway
   base_url: "https://your-instance.yourdomain.com"
 )
 ```

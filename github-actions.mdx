@@ -21,7 +21,7 @@ jobs:
 
       - name: Generate test inbox
         id: inbox
-        uses: zerodrop-dev/setup-zerodrop@36c6685cce921fbe8b6353a71292c8e262124e3e # v1.0.0
+        uses: zerodrop-dev/setup-zerodrop@aa882ace46b204bfd84bbcc374df73d32cf67343 # v1.1.0
 
       - name: Run Playwright tests
         run: npx playwright test
@@ -40,13 +40,27 @@ const mail = new ZeroDrop();
 const inbox = process.env.TEST_INBOX ?? mail.generateInbox();
 ```
 
+## Private inboxes with a free API key
+
+Without a key, anyone who knows an inbox's name can read it. Sign in with GitHub at [zerodrop.dev/keys](https://zerodrop.dev/keys) for a free key, save it as the repository secret `ZERODROP_API_KEY`, and pass it to the action:
+
+```yaml
+- name: Generate test inbox
+  id: inbox
+  uses: zerodrop-dev/setup-zerodrop@aa882ace46b204bfd84bbcc374df73d32cf67343 # v1.1.0
+  with:
+    api-key: ${{ secrets.ZERODROP_API_KEY }}
+```
+
+With v1.1.0 or later, the inbox name starts with your key's prefix (`k7x2-swift-x7k2m@zerodrop-sandbox.online`) and only your key can read it. The action exports `ZERODROP_API_KEY` to the steps that follow, where the SDKs pick it up on their own (TypeScript 0.3.0+; Python, Ruby, Go, PHP and Java 0.2.0+). If the job already sets `ZERODROP_API_KEY` in its `env`, the action uses that key and you can leave out `api-key`.
+
 ## SHA pinning (recommended)
 
 Pin to a specific commit SHA for supply chain security:
 
 ```yaml
 # Recommended — pin to SHA
-uses: zerodrop-dev/setup-zerodrop@36c6685cce921fbe8b6353a71292c8e262124e3e # v1.0.0
+uses: zerodrop-dev/setup-zerodrop@aa882ace46b204bfd84bbcc374df73d32cf67343 # v1.1.0
 
 # Not recommended — floating tag
 uses: zerodrop-dev/setup-zerodrop@v1
@@ -65,7 +79,7 @@ jobs:
     steps:
       - name: Generate test inbox
         id: inbox
-        uses: zerodrop-dev/setup-zerodrop@36c6685cce921fbe8b6353a71292c8e262124e3e
+        uses: zerodrop-dev/setup-zerodrop@aa882ace46b204bfd84bbcc374df73d32cf67343 # v1.1.0
 
       - name: Run tests
         run: npx playwright test --project=${{ matrix.browser }}
@@ -105,7 +119,7 @@ jobs:
 
       - name: Generate test inbox
         id: inbox
-        uses: zerodrop-dev/setup-zerodrop@36c6685cce921fbe8b6353a71292c8e262124e3e # v1.0.0
+        uses: zerodrop-dev/setup-zerodrop@aa882ace46b204bfd84bbcc374df73d32cf67343 # v1.1.0
 
       - name: Run E2E tests
         run: npx playwright test
@@ -125,7 +139,7 @@ jobs:
 
 | Output | Description | Example |
 |--------|-------------|---------|
-| `inbox` | Full email address | `swift-x7k2m@zerodrop-sandbox.online` |
+| `inbox` | Full email address | `swift-x7k2m@zerodrop-sandbox.online`, or `k7x2-swift-x7k2m@…` with an API key |
 | `name` | Inbox name only | `swift-x7k2m` |
 
 ## Security

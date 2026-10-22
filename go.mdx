@@ -104,6 +104,17 @@ func TestParallelSignups(t *testing.T) {
 }
 ```
 
+## Free API key (private inboxes)
+
+Without a key, anyone who knows an inbox's name can read it. Sign in with GitHub at [zerodrop.dev/keys](https://zerodrop.dev/keys) for a free key and set it as `ZERODROP_API_KEY`. With zerodrop-go v0.2.0 or later, `zerodrop.New()` reads it, `GenerateInbox` starts names with your key's prefix, and only your key can read those inboxes:
+
+```go
+client := zerodrop.New() // reads ZERODROP_API_KEY
+inbox := client.GenerateInbox()
+// => "k7x2-swift-x7k29a@zerodrop-sandbox.online", where k7x2 is your prefix
+prefix := client.Prefix() // "k7x2"
+```
+
 ## Error handling
 
 ```go
@@ -112,15 +123,21 @@ if errors.As(err, &timeoutErr) {
 	// No email arrived
 }
 if errors.Is(err, zerodrop.ErrUnauthorized) {
-	// Invalid API key
+	// The inbox belongs to another key's prefix, or your key is wrong;
+	// err.Error() carries the server's reason
+}
+if errors.Is(err, zerodrop.ErrInvalidAPIKey) {
+	// The key has a line break or similar in it; copy it again
 }
 ```
+
+Since v0.2.0 the 401 error wraps `ErrUnauthorized` with the server's reason, so compare with `errors.Is`, not `==`.
 
 ## Workspaces & self-hosting
 
 ```go
 client := zerodrop.New(
-	zerodrop.WithAPIKey(os.Getenv("ZERODROP_API_KEY")),
+	zerodrop.WithAPIKey(os.Getenv("ZERODROP_API_KEY")), // optional since v0.2.0: New reads it anyway
 	zerodrop.WithBaseURL("https://your-instance.yourdomain.com"),
 )
 ```

@@ -25,13 +25,14 @@
         "summary": "Fetch emails for an inbox",
         "description": "Returns all emails currently stored for the given inbox name. Emails expire after 30 minutes. Returns an empty array if the inbox has no emails or has expired.",
         "operationId": "getInbox",
+        "security": [{}, { "BearerAuth": [] }],
         "tags": ["Inbox"],
         "parameters": [
           {
             "name": "name",
             "in": "path",
             "required": true,
-            "description": "The inbox name (without the domain). Example: `swift-x7k2m` for `swift-x7k2m@zerodrop-sandbox.online`",
+            "description": "The inbox name (without the domain). Example: `swift-x7k2m` for `swift-x7k2m@zerodrop-sandbox.online`. Names that start with a registered key prefix (`k7x2-…`) can be read only with that key.",
             "schema": {
               "type": "string",
               "example": "swift-x7k2m"
@@ -76,6 +77,24 @@
               }
             }
           },
+          "401": {
+            "description": "The inbox name starts with a registered key prefix and the request had no key or a different one. Send that account's key as `Authorization: Bearer zd_…`.",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": { "type": "string", "example": "Bearer realm=\"zerodrop\"" }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Inboxes named k7x2-… belong to a ZeroDrop account and can be read only with its API key (Authorization: Bearer zd_k7x2_…). Without that key, use a name that doesn't start with k7x2-."
+                }
+              }
+            }
+          },
           "429": {
             "description": "Rate limit exceeded. Free tier allows 20 requests per 10 seconds per IP.",
             "content": {
@@ -97,13 +116,14 @@
         "summary": "Stream emails via SSE",
         "description": "Opens a Server-Sent Events stream for the given inbox. The server polls Redis with an exponential backoff strategy and pushes an event the moment an email arrives. The connection closes automatically after the first email or after 30 seconds (timeout).\n\n**Backoff strategy:**\n- 0–2s: polls every 500ms\n- 2–10s: polls every 1000ms\n- 10s+: polls every 2000ms\n\n**Events:**\n- `: connected` — connection established\n- `: keepalive` — heartbeat every 10s to prevent proxy timeout\n- `data: {email JSON}` — email arrived\n- `data: __timeout__` — no email within 30s, connection closing\n\nFor Node.js environments, use `fetch()` with `ReadableStream` rather than `EventSource` (which is browser-only).",
         "operationId": "streamInbox",
+        "security": [{}, { "BearerAuth": [] }],
         "tags": ["Inbox"],
         "parameters": [
           {
             "name": "name",
             "in": "path",
             "required": true,
-            "description": "The inbox name (without the domain).",
+            "description": "The inbox name (without the domain). Names that start with a registered key prefix (`k7x2-…`) can be read only with that key.",
             "schema": {
               "type": "string",
               "example": "swift-x7k2m"
@@ -119,6 +139,24 @@
                   "type": "string",
                   "description": "Server-Sent Events stream. Each event is separated by double newlines.",
                   "example": ": connected\n\n: keepalive\n\ndata: {\"id\":\"...\",\"from\":\"...\",\"subject\":\"...\"}\n\n"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The inbox name starts with a registered key prefix and the request had no key or a different one. Send that account's key as `Authorization: Bearer zd_…`.",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": { "type": "string", "example": "Bearer realm=\"zerodrop\"" }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Inboxes named k7x2-… belong to a ZeroDrop account and can be read only with its API key (Authorization: Bearer zd_k7x2_…). Without that key, use a name that doesn't start with k7x2-."
                 }
               }
             }
@@ -256,7 +294,7 @@
       "BearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "API key for Workspaces tier. Free tier does not require authentication."
+        "description": "Free API key from https://zerodrop.dev/keys, in the form `zd_<prefix>_<32 letters and digits>`. Needed only to read inboxes whose name starts with the key's prefix (`k7x2-…`); other inboxes need no authentication."
       }
     }
   },
