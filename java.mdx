@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'com.github.zerodrop-dev:zerodrop-java:v0.2.0'
+    testImplementation 'com.github.zerodrop-dev:zerodrop-java:v0.3.0'
 }
 ```
 
@@ -30,7 +30,7 @@ dependencies {
 <dependency>
     <groupId>com.github.zerodrop-dev</groupId>
     <artifactId>zerodrop-java</artifactId>
-    <version>v0.2.0</version>
+    <version>v0.3.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -100,7 +100,7 @@ All string filters are case-insensitive partial matches.
 
 ## Free API key (private inboxes)
 
-Without a key, anyone who knows an inbox's name can read it. Sign in with GitHub at [zerodrop.dev/keys](https://zerodrop.dev/keys) for a free key and set it as `ZERODROP_API_KEY`. With v0.2.0 or later, the client reads it, `generateInbox()` starts names with your key's prefix, and only your key can read those inboxes:
+Without a key, anyone who knows an inbox's name can read it, and one sender can reach only 5 different inboxes a day: past that, the inbox gets a notice from `notice@zerodrop.dev` instead of the email. Sign in with GitHub at [zerodrop.dev/keys](https://zerodrop.dev/keys) for a free key and set it as `ZERODROP_API_KEY`. With v0.2.0 or later, the client reads it, `generateInbox()` starts names with your key's prefix, only your key can read those inboxes, and mail to them isn't limited:
 
 ```java
 ZeroDrop mail = ZeroDrop.create(); // reads ZERODROP_API_KEY
@@ -118,10 +118,14 @@ try {
     // No email arrived
 } catch (ZeroDropException.Auth e) {
     // The inbox belongs to another key's prefix, or your key is wrong; e.getMessage() says which
+} catch (ZeroDropException.Held e) {
+    // No API key, and ZeroDrop held the email (daily limit); e.getMessage() says why
 } catch (ZeroDropException.Network e) {
     // Transport failure
 }
 ```
+
+`ZeroDropException.Held` is new in v0.3.0. Without an API key, one sender can reach only 5 different inboxes a day; past that, the email isn't stored and the inbox gets a notice instead. `waitForLatest` then throws `ZeroDropException.Held` at once rather than waiting for the timeout, and `fetchLatest` throws it when nothing matches. Older versions treat the notice as an email: without a filter they return it, and an OTP filter skips it, so the wait times out. A free key from [zerodrop.dev/keys](https://zerodrop.dev/keys) lifts the limit for inboxes under your key's prefix.
 
 ## Workspaces & self-hosting
 

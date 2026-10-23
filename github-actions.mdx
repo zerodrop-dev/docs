@@ -42,7 +42,7 @@ const inbox = process.env.TEST_INBOX ?? mail.generateInbox();
 
 ## Private inboxes with a free API key
 
-Without a key, anyone who knows an inbox's name can read it. Sign in with GitHub at [zerodrop.dev/keys](https://zerodrop.dev/keys) for a free key, save it as the repository secret `ZERODROP_API_KEY`, and pass it to the action:
+Without a key, anyone who knows an inbox's name can read it, and one sender can reach only 5 different inboxes a day: past that, the inbox gets a notice from `notice@zerodrop.dev` instead of the email. Sign in with GitHub at [zerodrop.dev/keys](https://zerodrop.dev/keys) for a free key, save it as the repository secret `ZERODROP_API_KEY`, and pass it to the action:
 
 ```yaml
 - name: Generate test inbox
@@ -52,7 +52,7 @@ Without a key, anyone who knows an inbox's name can read it. Sign in with GitHub
     api-key: ${{ secrets.ZERODROP_API_KEY }}
 ```
 
-With v1.1.0 or later, the inbox name starts with your key's prefix (`k7x2-swift-x7k2m@zerodrop-sandbox.online`) and only your key can read it. The action exports `ZERODROP_API_KEY` to the steps that follow, where the SDKs pick it up on their own (TypeScript 0.3.0+; Python, Ruby, Go, PHP and Java 0.2.0+). If the job already sets `ZERODROP_API_KEY` in its `env`, the action uses that key and you can leave out `api-key`.
+With v1.1.0 or later, the inbox name starts with your key's prefix (`k7x2-swift-x7k2m@zerodrop-sandbox.online`), only your key can read it, and mail to it isn't limited. The action exports `ZERODROP_API_KEY` to the steps that follow, where the SDKs pick it up on their own (TypeScript 0.3.0+; Python, Ruby, Go, PHP and Java 0.2.0+). If the job already sets `ZERODROP_API_KEY` in its `env`, the action uses that key and you can leave out `api-key`.
 
 ## SHA pinning (recommended)
 

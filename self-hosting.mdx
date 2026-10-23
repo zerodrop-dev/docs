@@ -28,6 +28,8 @@ npx wrangler secret put UPSTASH_REDIS_REST_URL
 npx wrangler secret put UPSTASH_REDIS_REST_TOKEN
 ```
 
+The worker's daily limit for mail without an API key counts only mail to `zerodrop-sandbox.online`, ZeroDrop's shared domain, so it doesn't apply on your own domain.
+
 Deploy:
 
 ```bash

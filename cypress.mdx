@@ -5,29 +5,49 @@ ZeroDrop works with Cypress for end-to-end email testing. No Docker, no SMTP ser
 ## Installation
 
 ```bash
-npm install zerodrop-client
-npm install --save-dev cypress
+npm install --save-dev zerodrop-client cypress
 ```
 
-## Basic setup
+## Setup
+
+Cypress runs your spec files in the browser. There, ZeroDrop's client can't read `ZERODROP_API_KEY`, and the browser blocks requests to the ZeroDrop API because it's on another origin. So run the client in Cypress's Node process and call it from your specs with `cy.task`:
+
+```javascript
+// cypress.config.js
+const { defineConfig } = require('cypress');
+const { ZeroDrop } = require('zerodrop-client');
+
+// Runs in Node, where it reads ZERODROP_API_KEY
+const mail = new ZeroDrop();
+
+module.exports = defineConfig({
+  e2e: {
+    baseUrl: 'http://localhost:3000',
+    setupNodeEvents(on) {
+      on('task', {
+        newInbox: () => mail.generateInbox(),
+        waitForEmail: ({ inbox, timeout = 30000 }) =>
+          mail.waitForLatest(inbox, { timeout }),
+      });
+    },
+  },
+});
+```
+
+If no email arrives in time, or ZeroDrop held the email, `cy.task('waitForEmail')` fails the test with the client's error message.
+
+## Email verification
 
 ```javascript
 // cypress/e2e/auth.cy.js
-import { ZeroDrop } from 'zerodrop-client';
-
-const mail = new ZeroDrop();
-
 describe('Email verification', () => {
   it('user can sign up and verify email', () => {
-    const inbox = mail.generateInbox();
+    cy.task('newInbox').then((inbox) => {
+      cy.visit('/signup');
+      cy.get('[data-testid="email"]').type(inbox);
+      cy.get('[data-testid="submit"]').click();
 
-    cy.visit('/signup');
-    cy.get('[data-testid="email"]').type(inbox);
-    cy.get('[data-testid="submit"]').click();
-
-    // Wait for email
-    cy.wrap(mail.waitForLatest(inbox, { timeout: 30000 }))
-      .then((email) => {
+      cy.task('waitForEmail', { inbox }).then((email) => {
         expect(email.otp).to.not.be.null;
 
         // Enter OTP
@@ -35,6 +55,7 @@ describe('Email verification', () => {
         cy.get('[data-testid="verify"]').click();
         cy.url().should('include', '/dashboard');
       });
+    });
   });
 });
 ```
@@ -43,18 +64,17 @@ describe('Email verification', () => {
 
 ```javascript
 it('OTP login', () => {
-  const inbox = mail.generateInbox();
+  cy.task('newInbox').then((inbox) => {
+    cy.visit('/login');
+    cy.get('[data-testid="email"]').type(inbox);
+    cy.get('[data-testid="submit"]').click();
 
-  cy.visit('/login');
-  cy.get('[data-testid="email"]').type(inbox);
-  cy.get('[data-testid="submit"]').click();
-
-  cy.wrap(mail.waitForLatest(inbox, { timeout: 30000 }))
-    .then((email) => {
+    cy.task('waitForEmail', { inbox }).then((email) => {
       // OTP auto-extracted — no regex needed
       cy.get('[data-testid="otp"]').type(email.otp);
       cy.get('[data-testid="verify"]').click();
     });
+  });
 });
 ```
 
@@ -62,50 +82,30 @@ it('OTP login', () => {
 
 ```javascript
 it('magic link verification', () => {
-  const inbox = mail.generateInbox();
+  cy.task('newInbox').then((inbox) => {
+    cy.visit('/signup');
+    cy.get('[data-testid="email"]').type(inbox);
+    cy.get('[data-testid="submit"]').click();
 
-  cy.visit('/signup');
-  cy.get('[data-testid="email"]').type(inbox);
-  cy.get('[data-testid="submit"]').click();
-
-  cy.wrap(mail.waitForLatest(inbox, { timeout: 30000 }))
-    .then((email) => {
+    cy.task('waitForEmail', { inbox }).then((email) => {
       // Navigate to verification link
       cy.visit(email.magicLink);
       cy.url().should('include', '/dashboard');
     });
-});
-```
-
-## cypress.config.js
-
-```javascript
-const { defineConfig } = require('cypress');
-
-module.exports = defineConfig({
-  e2e: {
-    baseUrl: 'http://localhost:3000',
-    defaultCommandTimeout: 10000,
-    pageLoadTimeout: 60000,
-  },
+  });
 });
 ```
 
 ## In GitHub Actions
 
-```yaml
-- name: Generate test inbox
-  id: inbox
-  uses: zerodrop-dev/setup-zerodrop@36c6685cce921fbe8b6353a71292c8e262124e3e # v1.0.0
+Without an API key, one sender can reach only 5 different inboxes a day, and each test above uses its own inbox. Get a free key at [zerodrop.dev/keys](https://zerodrop.dev/keys), save it as the repository secret `ZERODROP_API_KEY`, and pass it to the step that runs Cypress:
 
+```yaml
 - name: Run Cypress tests
   run: npx cypress run
   env:
-    TEST_INBOX: ${{ steps.inbox.outputs.inbox }}
+    ZERODROP_API_KEY: ${{ secrets.ZERODROP_API_KEY }}
     CYPRESS_BASE_URL: ${{ secrets.STAGING_URL }}
 ```
 
-```javascript
-// Use CI inbox or generate locally
-const inbox = Cypress.env('TEST_INBOX') ?? mail.generateInbox();
-```
+The `newInbox` task makes a fresh inbox for each test, so you don't need the setup-zerodrop action here. Inbox names then start with your key's prefix, and only your key can read them.

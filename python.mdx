@@ -13,7 +13,7 @@ Full API reference for `zerodrop` — the ZeroDrop Python SDK.
 pip install zerodrop
 ```
 
-No dependencies. Python 3.8+.
+No dependencies. Python 3.8+. On Python 3.8 to 3.10, use zerodrop 0.3.0 or later: earlier versions raise a `ValueError` on every email, because they can't parse its timestamp there.
 
 ## ZeroDrop class
 
@@ -30,7 +30,7 @@ mail = ZeroDrop(api_key=None, base_url="https://zerodrop.dev")
 | `api_key`  | `str` (optional)    | Free API key from [zerodrop.dev/keys](https://zerodrop.dev/keys). Defaults to the `ZERODROP_API_KEY` environment variable. |
 | `base_url` | `str` (optional)    | Custom base URL for self-hosted instances |
 
-Without an API key, anyone who knows an inbox's name can read it, and inboxes expire after 30 minutes on a shared domain. With a free key (zerodrop 0.2.0 or later), `generate_inbox()` starts names with your key's prefix, and only your key can read those inboxes. `mail.prefix` holds the prefix (`"k7x2"`), or `None` without a key.
+Without an API key, anyone who knows an inbox's name can read it, one sender can reach only 5 different inboxes a day (past that, the inbox gets a notice from `notice@zerodrop.dev` instead of the email), and each inbox expires 30 minutes after its latest email, on a shared domain. With a free key (zerodrop 0.2.0 or later), `generate_inbox()` starts names with your key's prefix, only your key can read those inboxes, and mail to them isn't limited. `mail.prefix` holds the prefix (`"k7x2"`), or `None` without a key.
 
 ---
 
@@ -61,7 +61,7 @@ mail.wait_for_latest(
 ) -> ZeroDropEmail
 ```
 
-Polls until an email arrives in the inbox. Raises `ZeroDropTimeoutError` if no email arrives within the timeout.
+Polls until an email arrives in the inbox. Raises `ZeroDropTimeoutError` if no email arrives within the timeout, and `ZeroDropHeldError` at once if ZeroDrop held the email (see [Error types](#error-types)).
 
 ### Parameters
 
@@ -94,7 +94,7 @@ mail.fetch_latest(
 ) -> Optional[ZeroDropEmail]
 ```
 
-Fetches the latest email without waiting. Returns `None` if the inbox is empty or no email matches the filter.
+Fetches the latest email without waiting. Returns `None` if the inbox is empty or no email matches the filter. Raises `ZeroDropHeldError` if nothing matches and the inbox holds a notice that ZeroDrop held an email.
 
 ```python
 email = mail.fetch_latest(inbox)
@@ -209,6 +209,21 @@ except ZeroDropTimeoutError:
     print("No email received in time")
 ```
 
+### ZeroDropHeldError
+
+Raised when ZeroDrop held the email. Without an API key, one sender can reach only 5 different inboxes a day. Past that, the email isn't stored, and the inbox gets a notice from `notice@zerodrop.dev` instead. `wait_for_latest()` raises at once rather than waiting for the timeout, and the message is the server's reason. A free key from [zerodrop.dev/keys](https://zerodrop.dev/keys) lifts the limit for inboxes under your key's prefix.
+
+```python
+from zerodrop import ZeroDropHeldError
+
+try:
+    email = mail.wait_for_latest(inbox)
+except ZeroDropHeldError as e:
+    print(e)  # why, and how to get a free key
+```
+
+`ZeroDropHeldError` is new in zerodrop 0.3.0. Older versions treat the notice as an email: without a filter, `wait_for_latest` returns it (its `otp` is `None`), and a filter such as `ZeroDropFilter(has_otp=True)` skips it, so the wait ends in `ZeroDropTimeoutError`.
+
 ### ZeroDropNetworkError
 
 Raised when the API is unreachable. Includes a link to the status page.
@@ -231,7 +246,8 @@ Raised on a 401: the inbox belongs to an account's prefix and the request had no
 ## pytest example
 
 ```python
-import pytest
+import re
+from playwright.sync_api import expect
 from zerodrop import ZeroDrop
 
 mail = ZeroDrop()
@@ -252,7 +268,7 @@ def test_signup_email_verification(page):
     page.fill('[name="otp"]', email.otp)
     page.click('[type="submit"]')
 
-    assert page.url == "/dashboard"
+    expect(page).to_have_url(re.compile(r".*/dashboard"))
 
 
 def test_magic_link_login(page):
@@ -268,14 +284,14 @@ def test_magic_link_login(page):
     assert email.magic_link is not None
     page.goto(email.magic_link)
 
-    assert page.url == "/dashboard"
+    expect(page).to_have_url(re.compile(r".*/dashboard"))
 ```
 
 ---
 
 ## Parallel test runs
 
-`generate_inbox()` runs locally — no network request, no throttling:
+`generate_inbox()` runs locally — no network request, no throttling. Without an API key, though, one sender can reach only 5 different inboxes a day; with a free key, inboxes under your prefix aren't counted:
 
 ```python
 # Safe to run in parallel — generate_inbox() is local
@@ -295,7 +311,6 @@ inboxes = [mail.generate_inbox() for _ in range(50)]
 | Email retention      | 30 min  | Extended  |
 | Custom domains       | ✗       | ✓         |
 | API key              | ✓ free  | ✓         |
-| Webhooks             | ✗       | ✓         |
 
 Get a Workspace at [zerodrop.dev/pricing](https://zerodrop.dev/pricing)
 

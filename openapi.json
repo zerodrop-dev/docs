@@ -3,7 +3,7 @@
   "info": {
     "title": "ZeroDrop API",
     "version": "1.0.0",
-    "description": "Disposable email inboxes for CI pipelines. No signup. No Docker. No SMTP config.\n\nBase URL: `https://zerodrop.dev`\n\nThe ZeroDrop API is a REST API that allows you to fetch emails from disposable inboxes. Inboxes are generated client-side — no API call needed to create one. Emails are stored for 30 minutes then automatically deleted.\n\nFor most use cases, use the [zerodrop-client SDK](https://npmjs.com/package/zerodrop-client) which handles polling, SSE, and OTP extraction automatically.",
+    "description": "Disposable email inboxes for CI pipelines. No signup to try. No Docker. No SMTP config.\n\nBase URL: `https://zerodrop.dev`\n\nThe ZeroDrop API is a REST API that allows you to fetch emails from disposable inboxes. Inboxes are generated client-side — no API call needed to create one. An inbox and its emails are deleted automatically 30 minutes after its latest email.\n\nFor most use cases, use the [zerodrop-client SDK](https://npmjs.com/package/zerodrop-client) which handles polling, SSE, and OTP extraction automatically.",
     "contact": {
       "email": "support@zerodrop.dev",
       "url": "https://zerodrop.dev/contact"
@@ -23,7 +23,7 @@
     "/api/inbox/{name}": {
       "get": {
         "summary": "Fetch emails for an inbox",
-        "description": "Returns all emails currently stored for the given inbox name. Emails expire after 30 minutes. Returns an empty array if the inbox has no emails or has expired.",
+        "description": "Returns all emails currently stored for the given inbox name. An inbox expires 30 minutes after its latest email. Returns an empty array if the inbox has no emails or has expired. Without an API key, an item can be a notice that ZeroDrop held an email (`held: true`) instead of an email.",
         "operationId": "getInbox",
         "security": [{}, { "BearerAuth": [] }],
         "tags": ["Inbox"],
@@ -65,8 +65,7 @@
                       "from": "noreply@yourapp.com",
                       "to": "swift-x7k2m@zerodrop-sandbox.online",
                       "subject": "Verify your email",
-                      "body": "Click here to verify your email: https://yourapp.com/verify?token=abc123",
-                      "rawBody": "...",
+                      "raw": "...",
                       "receivedAt": "2026-06-17T10:23:30.356Z",
                       "otp": null,
                       "magicLink": "https://yourapp.com/verify?token=abc123"
@@ -114,7 +113,7 @@
     "/api/inbox/{name}/stream": {
       "get": {
         "summary": "Stream emails via SSE",
-        "description": "Opens a Server-Sent Events stream for the given inbox. The server polls Redis with an exponential backoff strategy and pushes an event the moment an email arrives. The connection closes automatically after the first email or after 30 seconds (timeout).\n\n**Backoff strategy:**\n- 0–2s: polls every 500ms\n- 2–10s: polls every 1000ms\n- 10s+: polls every 2000ms\n\n**Events:**\n- `: connected` — connection established\n- `: keepalive` — heartbeat every 10s to prevent proxy timeout\n- `data: {email JSON}` — email arrived\n- `data: __timeout__` — no email within 30s, connection closing\n\nFor Node.js environments, use `fetch()` with `ReadableStream` rather than `EventSource` (which is browser-only).",
+        "description": "Opens a Server-Sent Events stream for the given inbox. The server polls Redis with an exponential backoff strategy and pushes an event when it finds an email. The connection closes automatically after the first email or after 30 seconds (timeout).\n\n**Backoff strategy:**\n- 0–2s: polls every 500ms\n- 2–10s: polls every 1000ms\n- 10s+: polls every 2000ms\n\n**Events:**\n- `: connected` — connection established\n- `: keepalive` — heartbeat every 10s to prevent proxy timeout\n- `data: {email JSON}` — email arrived\n- `data: __timeout__` — no email within 30s, connection closing\n\nFor Node.js environments, use `fetch()` with `ReadableStream` rather than `EventSource` (which is browser-only).",
         "operationId": "streamInbox",
         "security": [{}, { "BearerAuth": [] }],
         "tags": ["Inbox"],
@@ -234,12 +233,7 @@
             "description": "Email subject line.",
             "example": "Verify your email"
           },
-          "body": {
-            "type": "string",
-            "description": "Parsed plain-text body (first 5000 characters).",
-            "example": "Click here to verify: https://yourapp.com/verify?token=abc123"
-          },
-          "rawBody": {
+          "raw": {
             "type": "string",
             "description": "Full raw MIME message."
           },
@@ -260,6 +254,16 @@
             "nullable": true,
             "description": "Auto-extracted verification or reset URL. Detected for URLs containing verify, confirm, reset, token, activate, or auth. null if not detected.",
             "example": "https://yourapp.com/verify?token=abc123"
+          },
+          "held": {
+            "type": "boolean",
+            "description": "Present, and true, only on a notice that ZeroDrop held an email instead of storing it: without an API key, one sender can reach only 5 different inboxes a day. A notice comes from notice@zerodrop.dev, and its otp and magicLink are null. ZeroDrop's clients raise an error carrying `reason` rather than return a notice as an email.",
+            "example": true
+          },
+          "reason": {
+            "type": "string",
+            "description": "On a held-mail notice only: why ZeroDrop held the email and how to get a free API key, on one line.",
+            "example": "ZeroDrop held an email from yourapp.com to this inbox. The email was not stored. Without an API key, one sender can reach 5 different inboxes a day, and this sender reached that today. Get a free key at https://zerodrop.dev/keys and set it as ZERODROP_API_KEY. ZeroDrop's clients then start new inbox names with your key's prefix, and mail to those inboxes isn't limited."
           }
         }
       },

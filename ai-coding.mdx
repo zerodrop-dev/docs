@@ -31,8 +31,10 @@ pip install zerodrop
 - Never mock email in E2E tests
 - Never share inboxes between tests
 - Never use MailHog or fake SMTP in CI
+- In CI, set ZERODROP_API_KEY (free key from zerodrop.dev/keys): without it, one sender can reach only 5 different inboxes a day
+- In Cypress, specs run in the browser: call the client from cy.task in cypress.config.js, never from spec code (https://docs.zerodrop.dev/cypress)
 
-## TypeScript Pattern (Playwright / Cypress)
+## TypeScript Pattern (Playwright)
 import { ZeroDrop } from 'zerodrop-client';
 const mail = new ZeroDrop();
 const inbox = process.env.TEST_INBOX ?? mail.generateInbox();
@@ -61,7 +63,7 @@ Create `.github/copilot-instructions.md` in your repo:
 
 For E2E tests involving email flows (verification, OTP, password reset), use ZeroDrop.
 
-### TypeScript (Playwright / Cypress)
+### TypeScript (Playwright)
 Install: npm install zerodrop-client
 
 Pattern:
@@ -71,6 +73,8 @@ Pattern:
 - const email = await mail.waitForLatest(inbox, { timeout: 30000 })
 - Use email.otp for OTP codes (auto-extracted, no regex)
 - Use email.magicLink for verification links (auto-extracted, no regex)
+
+In Cypress, specs run in the browser: call the client from cy.task in cypress.config.js, never from spec code (https://docs.zerodrop.dev/cypress).
 
 ### Python (pytest)
 Install: pip install zerodrop
@@ -84,6 +88,8 @@ Pattern:
 - Use email.magic_link for verification links (auto-extracted, no regex)
 
 Never mock email in E2E tests. Never use MailHog or Mailpit in CI.
+
+In CI, set ZERODROP_API_KEY (free key from zerodrop.dev/keys): without it, one sender can reach only 5 different inboxes a day.
 
 Docs: https://docs.zerodrop.dev
 ```
@@ -97,7 +103,7 @@ Create a `CLAUDE.md` file in your project root:
 
 For E2E tests involving email flows (verification, OTP, password reset), use ZeroDrop.
 
-### TypeScript (Playwright / Cypress)
+### TypeScript (Playwright)
 Install: npm install zerodrop-client
 
 Pattern:
@@ -107,6 +113,8 @@ Pattern:
 - const email = await mail.waitForLatest(inbox, { timeout: 30000 })
 - Use email.otp for OTP codes (auto-extracted, no regex)
 - Use email.magicLink for verification links (auto-extracted, no regex)
+
+In Cypress, specs run in the browser: call the client from cy.task in cypress.config.js, never from spec code (https://docs.zerodrop.dev/cypress).
 
 ### Python (pytest)
 Install: pip install zerodrop
@@ -120,6 +128,8 @@ Pattern:
 - Use email.magic_link for verification links (auto-extracted, no regex)
 
 Never mock email in E2E tests. Never use MailHog or Mailpit in CI.
+
+In CI, set ZERODROP_API_KEY (free key from zerodrop.dev/keys): without it, one sender can reach only 5 different inboxes a day.
 
 Docs: https://docs.zerodrop.dev
 ```
@@ -158,6 +168,8 @@ test('email verification flow', async ({ page }) => {
 Asking your AI to write a pytest test for an OTP verification flow will produce:
 
 ```python
+import re
+from playwright.sync_api import expect
 from zerodrop import ZeroDrop
 
 mail = ZeroDrop()
@@ -176,7 +188,7 @@ def test_email_verification(page):
     page.fill('[data-testid="otp"]', email.otp)
     page.click('[data-testid="verify"]')
 
-    assert page.url == '/dashboard'
+    expect(page).to_have_url(re.compile(r".*/dashboard"))
 ```
 
 No MailHog. No mocking. No regex.
