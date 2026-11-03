@@ -67,7 +67,7 @@
           },
           {
             "group": "Reference",
-            "pages": ["self-hosting"]
+            "pages": ["workspaces", "self-hosting"]
           }
         ]
       },

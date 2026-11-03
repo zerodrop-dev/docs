@@ -141,6 +141,19 @@ Since v0.2.0 the 401 error wraps `ErrUnauthorized` with the server's reason, so 
 
 ## Workspaces & self-hosting
 
+A Workspace receives mail on a domain of its own, such as `yourcompany-qa.com`, and every inbox on it can be read only with your key. Set the domain as `ZERODROP_DOMAIN`, or pass `zerodrop.WithDomain` (v0.4.0 or later), next to your key:
+
+```go
+client := zerodrop.New(zerodrop.WithDomain("yourcompany-qa.com")) // reads ZERODROP_API_KEY
+inbox := client.GenerateInbox()
+// "k7x2-swift-x7k29ab@yourcompany-qa.com"
+email, err := client.WaitForLatest(ctx, inbox, nil)
+```
+
+Any address on the domain works, including one you name yourself: `client.WaitForLatest(ctx, "qa@yourcompany-qa.com", nil)` reads the inbox `k7x2-qa`. `client.Domain()` returns the domain in use, and a value that isn't a domain name makes every read return an error matching `zerodrop.ErrInvalidDomain`. Use the domain as your API keys page shows it. See [Workspaces](/workspaces) for how mail on it is filed.
+
+A self-hosted instance takes its own base URL:
+
 ```go
 client := zerodrop.New(
 	zerodrop.WithAPIKey(os.Getenv("ZERODROP_API_KEY")), // optional since v0.2.0: New reads it anyway

@@ -26,7 +26,10 @@ Set your secrets:
 ```bash
 npx wrangler secret put UPSTASH_REDIS_REST_URL
 npx wrangler secret put UPSTASH_REDIS_REST_TOKEN
+npx wrangler secret put DOMAIN_MODE   # type: open
 ```
+
+`DOMAIN_MODE=open` lets the worker store mail for your own domain. Without it, the worker accepts mail only for ZeroDrop's shared domain and registered Workspace domains, and rejects the rest.
 
 The worker's daily limit for mail without an API key counts only mail to `zerodrop-sandbox.online`, ZeroDrop's shared domain, so it doesn't apply on your own domain.
 

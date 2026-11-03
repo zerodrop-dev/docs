@@ -21,7 +21,7 @@ jobs:
 
       - name: Generate test inbox
         id: inbox
-        uses: zerodrop-dev/setup-zerodrop@aa882ace46b204bfd84bbcc374df73d32cf67343 # v1.1.0
+        uses: zerodrop-dev/setup-zerodrop@b463cb4a31b24872ecd8180039a0c4102ed76d46 # v1.2.0
 
       - name: Run Playwright tests
         run: npx playwright test
@@ -47,12 +47,27 @@ Without a key, anyone who knows an inbox's name can read it, and one sender can 
 ```yaml
 - name: Generate test inbox
   id: inbox
-  uses: zerodrop-dev/setup-zerodrop@aa882ace46b204bfd84bbcc374df73d32cf67343 # v1.1.0
+  uses: zerodrop-dev/setup-zerodrop@b463cb4a31b24872ecd8180039a0c4102ed76d46 # v1.2.0
   with:
     api-key: ${{ secrets.ZERODROP_API_KEY }}
 ```
 
 With v1.1.0 or later, the inbox name starts with your key's prefix (`k7x2-swift-x7k2m@zerodrop-sandbox.online`), only your key can read it, and mail to it isn't limited. The action exports `ZERODROP_API_KEY` to the steps that follow, where the SDKs pick it up on their own (TypeScript 0.3.0+; Python, Ruby, Go, PHP and Java 0.2.0+). If the job already sets `ZERODROP_API_KEY` in its `env`, the action uses that key and you can leave out `api-key`.
+
+## Your Workspace's domain
+
+With a [Workspace](/workspaces), add your domain next to the key. The inbox is created there, and the action exports `ZERODROP_DOMAIN` so the SDKs use the same domain in later steps:
+
+```yaml
+- name: Generate test inbox
+  id: inbox
+  uses: zerodrop-dev/setup-zerodrop@v1
+  with:
+    api-key: ${{ secrets.ZERODROP_API_KEY }}
+    domain: yourcompany-qa.com
+```
+
+The `domain` input needs v1.2.0 of the action or later; pin its commit SHA as shown above.
 
 ## SHA pinning (recommended)
 
@@ -60,7 +75,7 @@ Pin to a specific commit SHA for supply chain security:
 
 ```yaml
 # Recommended — pin to SHA
-uses: zerodrop-dev/setup-zerodrop@aa882ace46b204bfd84bbcc374df73d32cf67343 # v1.1.0
+uses: zerodrop-dev/setup-zerodrop@b463cb4a31b24872ecd8180039a0c4102ed76d46 # v1.2.0
 
 # Not recommended — floating tag
 uses: zerodrop-dev/setup-zerodrop@v1
@@ -79,7 +94,7 @@ jobs:
     steps:
       - name: Generate test inbox
         id: inbox
-        uses: zerodrop-dev/setup-zerodrop@aa882ace46b204bfd84bbcc374df73d32cf67343 # v1.1.0
+        uses: zerodrop-dev/setup-zerodrop@b463cb4a31b24872ecd8180039a0c4102ed76d46 # v1.2.0
 
       - name: Run tests
         run: npx playwright test --project=${{ matrix.browser }}
@@ -119,7 +134,7 @@ jobs:
 
       - name: Generate test inbox
         id: inbox
-        uses: zerodrop-dev/setup-zerodrop@aa882ace46b204bfd84bbcc374df73d32cf67343 # v1.1.0
+        uses: zerodrop-dev/setup-zerodrop@b463cb4a31b24872ecd8180039a0c4102ed76d46 # v1.2.0
 
       - name: Run E2E tests
         run: npx playwright test

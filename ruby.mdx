@@ -109,6 +109,19 @@ end
 
 ## Workspaces & self-hosting
 
+A Workspace receives mail on a domain of its own, such as `yourcompany-qa.com`, and every inbox on it can be read only with your key. Set the domain as `ZERODROP_DOMAIN`, or pass `domain:` (zerodrop 0.4.0 or later), next to your key:
+
+```ruby
+mail = ZeroDrop::Client.new(domain: "yourcompany-qa.com") # reads ZERODROP_API_KEY
+inbox = mail.generate_inbox
+# => "k7x2-swift-x7k29ab@yourcompany-qa.com"
+email = mail.wait_for_latest(inbox, timeout: 15)
+```
+
+Any address on the domain works, including one you name yourself: `mail.wait_for_latest("qa@yourcompany-qa.com")` reads the inbox `k7x2-qa`. `mail.domain` holds the domain in use. Use the domain as your API keys page shows it. See [Workspaces](/workspaces) for how mail on it is filed.
+
+A self-hosted instance takes its own base URL:
+
 ```ruby
 mail = ZeroDrop::Client.new(
   api_key: ENV["ZERODROP_API_KEY"], # optional since 0.2.0: the client reads it anyway

@@ -1,0 +1,59 @@
+---
+title: "Workspaces"
+description: "Your own receiving domain and retention: inboxes only your key can read"
+---
+
+# Workspaces
+
+A Workspace gives your team a domain of its own, such as `yourcompany-qa.com`, and the retention you choose. Sign-up forms that reject disposable domains accept it, because it isn't on their lists, and every inbox on it can be read only with your API key.
+
+## How it works
+
+- **Your domain.** Any address on it reaches ZeroDrop. Mail is filed under your key's prefix: `signup-test@yourcompany-qa.com` is the inbox `k7x2-signup-test`, readable only with your key (`zd_k7x2_…`). An address that already starts with your prefix (`k7x2-swift-x7k29ab@yourcompany-qa.com`) keeps its name.
+- **Retention.** Your inboxes keep their emails for the time you choose, from 1 minute to 7 days after the latest one, on your domain and under your prefix on the shared domain. Without a Workspace, it's 30 minutes. A new email never shortens an inbox's time, so a shorter retention applies to inboxes as they're created. Each inbox keeps its newest 50 emails.
+- **One inbox per name.** The domain isn't part of the inbox name: `signup-test@` on each of your domains, and `k7x2-signup-test` on the shared domain, all arrive in the inbox `k7x2-signup-test`. Give tests that run side by side different names, as `generateInbox()` does.
+- **The domain itself.** Mail to a subdomain of yours, such as `x@mail.yourcompany-qa.com`, is refused: only the domain set up for your Workspace receives mail.
+- **Encryption.** As on the free tier, each email is encrypted with AES-256-GCM before it's stored.
+
+Your domain is a dedicated test domain: one you own, with its nameservers pointed at our Cloudflare account, or one we register for you. The founder sets it up with you. See [zerodrop.dev/pricing](https://zerodrop.dev/pricing). Your API keys page then shows the domain and retention; use the domain exactly as it shows it (an internationalized domain in its `xn--` form).
+
+## Using your domain
+
+Set your domain next to your key. Every client reads `ZERODROP_DOMAIN`:
+
+```bash
+ZERODROP_API_KEY=zd_k7x2_…
+ZERODROP_DOMAIN=yourcompany-qa.com
+```
+
+```typescript
+import { ZeroDrop } from 'zerodrop-client';
+
+const mail = new ZeroDrop(); // reads ZERODROP_API_KEY and ZERODROP_DOMAIN
+const inbox = mail.generateInbox();
+// "k7x2-swift-x7k29ab@yourcompany-qa.com"
+
+const email = await mail.waitForLatest(inbox);
+```
+
+Or pass it as an option: `new ZeroDrop(key, { domain: 'yourcompany-qa.com' })`. An address you name yourself works too: `mail.waitForLatest('qa@yourcompany-qa.com')` reads the inbox `k7x2-qa`, where ZeroDrop files that mail.
+
+| Client | Setting |
+|---|---|
+| TypeScript (`zerodrop-client` 0.5.0+) | `ZERODROP_DOMAIN`, or the `domain` option |
+| Python (`zerodrop` 0.4.0+) | `ZERODROP_DOMAIN`, or `ZeroDrop(domain=...)` ([details](/python)) |
+| Go (v0.4.0+) | `ZERODROP_DOMAIN`, or `zerodrop.WithDomain(...)` ([details](/go)) |
+| Ruby (`zerodrop` 0.4.0+) | `ZERODROP_DOMAIN`, or `ZeroDrop::Client.new(domain: ...)` ([details](/ruby)) |
+| PHP (`zerodrop/zerodrop` 0.4.0+) | `ZERODROP_DOMAIN`, or `new Client(domain: ...)` ([details](/php)) |
+| Java (v0.4.0+) | `ZERODROP_DOMAIN`, or `.domain(...)` on the builder ([details](/java)) |
+| MCP server (`zerodrop-mcp` 0.4.0+) | `ZERODROP_DOMAIN` in the server's `env` |
+| GitHub Action (v1.2.0+) | the `domain` input, or `ZERODROP_DOMAIN` in the job; the action exports it for later steps |
+
+## Reading over HTTP
+
+The API is the same as for any inbox: read your Workspace's inboxes by name, with your key.
+
+```bash
+curl -H "Authorization: Bearer $ZERODROP_API_KEY" \
+  https://zerodrop.dev/api/inbox/k7x2-signup-test
+```

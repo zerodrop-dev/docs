@@ -129,6 +129,22 @@ try {
 
 ## Workspaces & self-hosting
 
+A Workspace receives mail on a domain of its own, such as `yourcompany-qa.com`, and every inbox on it can be read only with your key. Set the domain as `ZERODROP_DOMAIN`, which `ZeroDrop.create()` reads like your key, or pass it to the builder (v0.4.0 or later):
+
+```java
+ZeroDrop mail = ZeroDrop.builder()
+    .apiKey(System.getenv("ZERODROP_API_KEY"))
+    .domain("yourcompany-qa.com")
+    .build();
+String inbox = mail.generateInbox();
+// "k7x2-swift-x7k29ab@yourcompany-qa.com"
+Email email = mail.waitForLatest(inbox, Duration.ofSeconds(15));
+```
+
+Any address on the domain works, including one you name yourself: `mail.waitForLatest("qa@yourcompany-qa.com")` reads the inbox `k7x2-qa`. `mail.domain()` returns the domain in use, and a value that isn't a domain name makes `ZeroDrop.create()` and `build()` throw `IllegalArgumentException`. Use the domain as your API keys page shows it. See [Workspaces](/workspaces) for how mail on it is filed.
+
+A self-hosted instance takes its own base URL:
+
 ```java
 ZeroDrop mail = ZeroDrop.builder()
     .apiKey(System.getenv("ZERODROP_API_KEY")) // optional since v0.2.0: the client reads it anyway
