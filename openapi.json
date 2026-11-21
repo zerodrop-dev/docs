@@ -257,13 +257,13 @@
           },
           "held": {
             "type": "boolean",
-            "description": "Present, and true, only on a notice that ZeroDrop held an email instead of storing it: without an API key, one sender can reach only 5 different inboxes a day. A notice comes from notice@zerodrop.dev, and its otp and magicLink are null. ZeroDrop's clients raise an error carrying `reason` rather than return a notice as an email.",
+            "description": "Present, and true, only on a notice that ZeroDrop held an email instead of storing it: without an API key, one sender can reach only 5 different inboxes a day, and an account's inboxes can receive 300 emails a day with a free key (3,000 for a Workspace). A notice comes from notice@zerodrop.dev, and its otp and magicLink are null. ZeroDrop's clients raise an error carrying `reason` rather than return a notice as an email.",
             "example": true
           },
           "reason": {
             "type": "string",
-            "description": "On a held-mail notice only: why ZeroDrop held the email and how to get a free API key, on one line.",
-            "example": "ZeroDrop held an email from yourapp.com to this inbox. The email was not stored. Without an API key, one sender can reach 5 different inboxes a day, and this sender reached that today. Get a free key at https://zerodrop.dev/keys and set it as ZERODROP_API_KEY. ZeroDrop's clients then start new inbox names with your key's prefix, and mail to those inboxes isn't limited."
+            "description": "On a held-mail notice only: why ZeroDrop held the email and what to do about it, on one line.",
+            "example": "ZeroDrop held an email from yourapp.com to this inbox. The email was not stored. Without an API key, one sender can reach 5 different inboxes a day, and this sender reached that today. Get a free key at https://zerodrop.dev/keys and set it as ZERODROP_API_KEY. ZeroDrop's clients then start new inbox names with your key's prefix, and mail to those inboxes counts toward your account's own limit of 300 emails a day instead."
           }
         }
       },

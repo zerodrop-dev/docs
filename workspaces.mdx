@@ -5,7 +5,7 @@ description: "Your own receiving domain and retention: inboxes only your key can
 
 # Workspaces
 
-A Workspace gives your team a domain of its own, such as `yourcompany-qa.com`, and the retention you choose. Sign-up forms that reject disposable domains accept it, because it isn't on their lists, and every inbox on it can be read only with your API key.
+A Workspace gives your team a domain of its own, such as `yourcompany-qa.com`, and the retention you choose. Sign-up forms that reject disposable domains accept it, because it isn't on their lists, and every inbox on it can be read only with your API key. Your AI agents can also use it to sign up for other services on your behalf: see [Agent sign-ups](#agent-sign-ups).
 
 ## How it works
 
@@ -57,3 +57,14 @@ The API is the same as for any inbox: read your Workspace's inboxes by name, wit
 curl -H "Authorization: Bearer $ZERODROP_API_KEY" \
   https://zerodrop.dev/api/inbox/k7x2-signup-test
 ```
+
+## Agent sign-ups
+
+On your Workspace's own domain, your AI agents may use inboxes to sign up for and use third-party services on your behalf, through the MCP server or any client with your domain set. The [terms](https://zerodrop.dev/terms) set the rules, under "Agent use on Workspaces":
+
+- You are responsible for what your agents do, as if you had done it yourself.
+- Your agents must follow each service's terms, including any rules on automated sign-ups.
+- No bulk or fake accounts, no accounts to get around a ban or a limit, no accounts made for resale, and no spam.
+- Mail from the platforms on our sender blocklist is refused on every domain, yours included, so agents can't sign up for them through ZeroDrop.
+
+On the shared domain, registering accounts on third-party services you don't operate isn't allowed, whether manually, with scripts, or through AI agents or the MCP server, unless that service has authorised you to do so.

@@ -100,7 +100,7 @@ All string filters are case-insensitive partial matches.
 
 ## Free API key (private inboxes)
 
-Without a key, anyone who knows an inbox's name can read it, and one sender can reach only 5 different inboxes a day: past that, the inbox gets a notice from `notice@zerodrop.dev` instead of the email. Sign in with GitHub at [zerodrop.dev/keys](https://zerodrop.dev/keys) for a free key and set it as `ZERODROP_API_KEY`. With v0.2.0 or later, the client reads it, `generateInbox()` starts names with your key's prefix, only your key can read those inboxes, and mail to them isn't limited:
+Without a key, anyone who knows an inbox's name can read it, and one sender can reach only 5 different inboxes a day: past that, the inbox gets a notice from `notice@zerodrop.dev` instead of the email. Sign in with GitHub at [zerodrop.dev/keys](https://zerodrop.dev/keys) for a free key and set it as `ZERODROP_API_KEY`. With v0.2.0 or later, the client reads it, `generateInbox()` starts names with your key's prefix, only your key can read those inboxes, and the 5-inbox limit doesn't apply to them (your account can receive up to 300 emails a day):
 
 ```java
 ZeroDrop mail = ZeroDrop.create(); // reads ZERODROP_API_KEY

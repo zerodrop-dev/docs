@@ -28,7 +28,7 @@ const mail = new ZeroDrop(apiKey?, options?);
 | `options.baseUrl` | `string` (optional) | Custom base URL for self-hosted instances |
 | `options.domain` | `string` (optional) | Your [Workspace](/workspaces)'s own domain. Defaults to the `ZERODROP_DOMAIN` environment variable, then `zerodrop-sandbox.online`. 0.5.0 or later |
 
-Without an API key, anyone who knows an inbox's name can read it, one sender can reach only 5 different inboxes a day (past that, the inbox gets a notice from `notice@zerodrop.dev` instead of the email), and each inbox expires 30 minutes after its latest email, on a shared domain. With a free key (zerodrop-client 0.3.0 or later), `generateInbox()` starts names with your key's prefix, only your key can read those inboxes, and mail to them isn't limited. `mail.prefix` holds the prefix (`"k7x2"`), or `null` without a key.
+Without an API key, anyone who knows an inbox's name can read it, one sender can reach only 5 different inboxes a day (past that, the inbox gets a notice from `notice@zerodrop.dev` instead of the email), and each inbox expires 30 minutes after its latest email, on a shared domain. With a free key (zerodrop-client 0.3.0 or later), `generateInbox()` starts names with your key's prefix, only your key can read those inboxes, and the 5-inbox limit doesn't apply to them (your account can receive up to 300 emails a day). `mail.prefix` holds the prefix (`"k7x2"`), or `null` without a key.
 
 ---
 
