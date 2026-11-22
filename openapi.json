@@ -220,7 +220,13 @@
           },
           "from": {
             "type": "string",
-            "description": "Sender email address.",
+            "description": "The envelope sender (SMTP MAIL FROM). For mail sent through an email provider this is often the provider's bounce address; fromAddress is the visible From.",
+            "example": "bounces+1234@em.yourapp.com"
+          },
+          "fromAddress": {
+            "type": "string",
+            "nullable": true,
+            "description": "The visible From address without its display name, its domain in ASCII (xn--) form, so a lookalike domain shows as what it is. null when the From header has no address. Absent on emails stored before November 22, 2026.",
             "example": "noreply@yourapp.com"
           },
           "to": {
@@ -254,6 +260,43 @@
             "nullable": true,
             "description": "Auto-extracted verification or reset URL. Detected for URLs containing verify, confirm, reset, token, activate, or auth. null if not detected.",
             "example": "https://yourapp.com/verify?token=abc123"
+          },
+          "auth": {
+            "type": "object",
+            "nullable": true,
+            "description": "What Cloudflare's SPF, DKIM and DMARC checks said about the sender. Read only from Cloudflare's own header block at the top of the message: a sender can add a header of the same name below it, and that one is ignored. Anything missing or unclear is unknown, never a pass. null when a self-hosted Worker sets AUTH_RESULTS=off; absent on held-mail notices and on emails stored before November 22, 2026.",
+            "properties": {
+              "result": {
+                "type": "string",
+                "enum": ["verified", "unverified", "failed", "unknown"],
+                "description": "verified: DMARC passed for the visible From's domain. unverified: that domain publishes no DMARC policy, which is common for test domains. failed: DMARC failed. unknown: anything else.",
+                "example": "verified"
+              },
+              "dmarc": {
+                "type": "string",
+                "nullable": true,
+                "description": "Cloudflare's DMARC result, such as pass, fail or none.",
+                "example": "pass"
+              },
+              "spf": {
+                "type": "string",
+                "nullable": true,
+                "description": "Cloudflare's SPF result for the envelope sender.",
+                "example": "pass"
+              },
+              "dkim": {
+                "type": "string",
+                "nullable": true,
+                "description": "pass if any DKIM signature passed, otherwise the first signature's result.",
+                "example": "pass"
+              },
+              "fromDomain": {
+                "type": "string",
+                "nullable": true,
+                "description": "The visible From's domain, in ASCII form.",
+                "example": "yourapp.com"
+              }
+            }
           },
           "held": {
             "type": "boolean",
